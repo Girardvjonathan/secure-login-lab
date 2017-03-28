@@ -7,7 +7,6 @@ router.get('/', ensureAuthenticated, function(req, res){
 });
 
 router.get('/initdb', function(req, res) {
-	console.log("asdasdokasodk");
     require('./../models/migration')();
     res.sendStatus(200);
 });

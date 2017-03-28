@@ -24,6 +24,7 @@ http://stackoverflow.com/questions/19690950/preventing-brute-force-using-node-an
 
 ## Posibilité de changer de mdp
 Reinitialiser le mdp -- poser question pourquoi parametrable
+-- Jai sa dans un autre projet -- https://github.com/Girardvjonathan/Potatowl
 
 
 ## Une politique de mot de passe configurable

@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js"
+    "start": "nodemon app.js",
+    "prod": "node app.js"
   },
   "repository": {
     "type": "git",
@@ -18,17 +19,18 @@
   },
   "homepage": "https://github.com/Girardvjonathan/secure-login-lab#readme",
   "dependencies": {
-    "express": "^4.15.2",
     "bcryptjs": "*",
     "body-parser": "*",
     "connect-flash": "*",
     "cookie-parser": "^1.4.1",
+    "express": "^4.15.2",
     "express-handlebars": "*",
     "express-messages": "*",
     "express-session": "*",
     "express-validator": "*",
     "mongodb": "*",
     "mongoose": "*",
+    "nodemon": "^1.11.0",
     "passport": "*",
     "passport-http": "*",
     "passport-local": "*"

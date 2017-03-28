@@ -1,5 +1,6 @@
 module.exports = function () {
     let User = require('./users');
+    let Hash = require('./hash');
     //
     // // init user
     let user1 = new User({
@@ -65,5 +66,24 @@ module.exports = function () {
     User.createUser(admin2, function (err, user) {
         //console.log(user)
     });
+
+
+    let hash1 = new Hash({
+        id: 1,
+        name: "SHA256",
+    });
+
+    let hash2 = new Hash({
+        id:2,
+        name: "SHA512",
+        current: true
+    });
+
+    Hash.addHash(hash1,function (err, hash) {
+    });
+    Hash.addHash(hash2,function (err, hash) {
+    });
+
+
     console.log("Database migrated");
 }
