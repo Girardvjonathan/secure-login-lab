@@ -71,3 +71,13 @@ vérifier comment sa fonctionne avec 'express-session'
 
 * nada
 
+
+
+# ressource
+
+* SSL https://www.sitepoint.com/how-to-use-ssltls-with-node-js/
+
+* Express-session et CSRF
+http://scottksmith.com/blog/2014/09/04/simple-steps-to-secure-your-express-node-application/
+
+* Passport 

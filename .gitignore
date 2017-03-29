@@ -1,3 +1,8 @@
 node_modules
 .idea
 .log
+note.md
+server.enc.key
+server.crt
+server.key
+server.csr

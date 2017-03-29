@@ -10,6 +10,10 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var mongo = require('mongodb');
 var mongoose = require('mongoose');
+require('ssl-root-cas').inject();
+
+//CSRF
+var csrf = require('csurf');
 
 // mongoose.connect('mongodb://localhost/loginapp');
 // var db = mongoose.connection;
@@ -36,9 +40,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Express Session
 app.use(session({
-    secret: 'secret',
-    saveUninitialized: true,
-    resave: true
+    secret: 'dzndCGNXDV5CAKwxK0UVfiap3EYXo5S2lj3uYRWebZC1RHPCdhRr9bKWw4JIBm9nxpeF2cE5zhyqOxcYWGGypfmDddBkL3Vl',
+    secure: true,
+    // saveUninitialized: true,
+    // resave: true
 }));
 
 // Passport init
@@ -76,6 +81,8 @@ app.use(function (req, res, next) {
 });
 
 
+//TODO check that
+app.use(csrf());
 
 
 require('./routes/routes')(app); // configure our routes
@@ -83,10 +90,21 @@ require('./routes/routes')(app); // configure our routes
 // Set Port
 app.set('port', (process.env.PORT || 3000));
 
+var fs = require('fs');
+var https = require('https');
+
+var options = {
+    key  : fs.readFileSync('server.key'),
+    cert : fs.readFileSync('server.crt')
+};
+
 db.connectDB(function() {
     // startup our app at http://localhost:8080
-    app.listen(app.get('port'), function(){
-        console.log('Server started on port '+app.get('port'));
+    // app.listen(app.get('port'), function(){
+    //     console.log('Server started on port '+app.get('port'));
+    // });
+    https.createServer(options, app).listen(app.get('port'), function () {
+        console.log('Started!');
     });
 });
 

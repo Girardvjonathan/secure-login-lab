@@ -63,6 +63,7 @@ passport.use(new LocalStrategy(
             if (!user) {
                 return done(null, false, {message: 'Unknown User'});
             }
+
             User.authenticate(password, user)
                 .then((res) => {
                     if (res.isMatch) {
@@ -72,7 +73,6 @@ passport.use(new LocalStrategy(
                     }
                 })
                 .catch(err => console.log(err));
-
         });
     }));
 
