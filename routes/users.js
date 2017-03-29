@@ -63,15 +63,16 @@ passport.use(new LocalStrategy(
    	if(!user){
    		return done(null, false, {message: 'Unknown User'});
    	}
+   	let auth = User.authenticate(password, user)
+       .then((res) => {
+           if(res.isMatch){
+               return done(null, res.user);
+           } else {
+               return done(null, false, {message: 'Invalid username/password.'});
+           }
+       })
+       .catch(err => console.log(err));
 
-   	User.comparePassword(password, user.password, function(err, isMatch){
-   		if(err) throw err;
-   		if(isMatch){
-   			return done(null, user);
-   		} else {
-   			return done(null, false, {message: 'Invalid password'});
-   		}
-   	});
    });
   }));
 
