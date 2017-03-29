@@ -42,7 +42,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
     secret: 'dzndCGNXDV5CAKwxK0UVfiap3EYXo5S2lj3uYRWebZC1RHPCdhRr9bKWw4JIBm9nxpeF2cE5zhyqOxcYWGGypfmDddBkL3Vl',
     cookie: { secure: true,
-        maxAge: 1000
+        maxAge: 300000 // 5 min cookies
     },
     saveUninitialized: true,
     resave: true
