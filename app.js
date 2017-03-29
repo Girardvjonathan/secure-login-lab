@@ -13,7 +13,7 @@ var mongoose = require('mongoose');
 require('ssl-root-cas').inject();
 
 //CSRF
-var csrf = require('csurf');
+// var csrf = require('csurf');
 
 // mongoose.connect('mongodb://localhost/loginapp');
 // var db = mongoose.connection;
@@ -84,7 +84,7 @@ app.use(function (req, res, next) {
 
 
 //TODO check that
-app.use(csrf());
+// app.use(csrf());
 
 
 require('./routes/routes')(app); // configure our routes
