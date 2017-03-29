@@ -41,9 +41,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Express Session
 app.use(session({
     secret: 'dzndCGNXDV5CAKwxK0UVfiap3EYXo5S2lj3uYRWebZC1RHPCdhRr9bKWw4JIBm9nxpeF2cE5zhyqOxcYWGGypfmDddBkL3Vl',
-    secure: true,
-    // saveUninitialized: true,
-    // resave: true
+    cookie: { secure: true },
+    saveUninitialized: true,
+    resave: true
 }));
 
 // Passport init
