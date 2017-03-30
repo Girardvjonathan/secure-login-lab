@@ -2,9 +2,31 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
+let Config = require('../models/config');
+
+var async = require('async');
+var crypto = require('crypto');
+var nodemailer = require("nodemailer");
+var smtpTransport = require('nodemailer-smtp-transport');
+var smtpTransport = nodemailer.createTransport(smtpTransport({
+    service : "gmail",
+    auth : {
+        user : 'gti510stapp@gmail.com',
+        pass : 'STAPP510STAPP',
+    }
+}));
 
 var User = require('../models/users');
 var bouncer = require("express-bouncer")(2000, 900000);
+var isPasswordResettable = function(callback) {
+    return Config.getconfig(function (err, config) {
+        callback(config.allowPasswordReset);
+    });
+}
+
+
+const ONE_HOUR = 3600000;
+
 // Register
 router.get('/register', function (req, res) {
     res.render('register');
@@ -12,7 +34,23 @@ router.get('/register', function (req, res) {
 
 // Login
 router.get('/login', function (req, res) {
-    res.render('login');
+    isPasswordResettable(function(passwordResettable){
+        res.render('login', {
+            passwordResettable: passwordResettable
+        });
+    });
+});
+
+// Forgot password
+router.get('/forgot-password', function (req, res) {
+    isPasswordResettable(function(passwordResettable){
+        if (passwordResettable){
+            res.render('forgot-password');
+        } else {
+            req.flash('error_msg', 'Invalid request');
+            return res.redirect('/users/login/');
+        }
+    });
 });
 
 // Register User
@@ -118,6 +156,149 @@ router.get('/logout', function (req, res) {
     req.flash('success_msg', 'You are logged out');
 
     res.redirect('/users/login');
+});
+
+
+router.post('/forgot-password', function(req, res, next) {
+    isPasswordResettable(function(passwordResettable){
+        if (passwordResettable) {
+            var email = req.body.email;
+            async.waterfall([
+                function(done) {
+                    crypto.randomBytes(20, function(err, buf) {
+                        var token = buf.toString('hex');
+                        done(err, token);
+                    });
+                },
+                function(token, done) {
+                    User.findOne({
+                        email : req.body.email
+                    }, function(err, user) {
+                        if (!user) {
+                            console.log("no user found with: " + email);
+                            req.flash('error', 'No account with that email address exists.');
+                            return res.redirect('/users/forgot-password');
+                        }
+                        user.resetPasswordToken = token;
+                        user.resetPasswordExpires = Date.now() + ONE_HOUR;
+
+                        user.save(function(err) {
+                            done(err, token, user);
+                        });
+                    });
+                },
+                function(token, user, done) {
+                    var smtpTransport = require('nodemailer-smtp-transport');
+                    var smtpTransport = nodemailer.createTransport(smtpTransport({
+                        service : "gmail",
+                        auth : {
+                            user : 'gti510stapp@gmail.com',
+                            pass : 'STAPP510STAPP',
+                        }
+                    }));
+
+                    var mailOptions = {
+                        to : user.email,
+                        from : 'gti510stapp@gmail.com',
+                        subject : 'GTI619 - LoginApp - Password reset',
+                        text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
+                            'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                            'http://' + req.headers.host + '/users/reset-password/' + token + '&' + user.email + '\n\n' +
+                            'If you did not request this, please ignore this email and your password will remain unchanged.\n'
+                    };
+
+                    smtpTransport.sendMail(mailOptions, function(err) {
+                        console.log("message send to :" + user.email);
+                        req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
+                        done(err, 'done');
+                    });
+                }
+            ], function(err) {
+                if (err) return next(err);
+                req.flash('success_msg', 'The instructions to reset your password have been sent to your email address.');
+                res.redirect('/users/login');
+            });
+        } else {
+            req.flash('error_msg', 'Invalid request');
+            return res.redirect('/users/login/');
+        }
+    });
+
+});
+
+
+router.get('/reset-password/:token&:email', function(req, res) {
+    var email = req.params.email;
+    var token = req.params.token;
+    User.findOne({
+        resetPasswordToken : req.params.token,
+        email: email,
+        resetPasswordExpires : {
+            $gt : Date.now()
+        }
+    }, function(err, user) {
+        if (!user) {
+            req.flash('error', 'Password reset token is invalid or has expired.');
+            return res.redirect('/users/forgot-password');
+        }
+
+        //res.redirect('/resetPassword/' + email);
+        res.render('reset-password', {
+            email: email,
+            token: token
+        });
+
+    });
+});
+
+router.post('/reset-password', function(req, res) {
+
+    var email = req.body.email;
+    var password = req.body.password;
+    var passwordConfirm = req.body.passwordConfirm;
+    var token = req.body.token;
+
+    // Validation
+    req.checkBody('email', 'Email is required').notEmpty();
+    req.checkBody('email', 'Email is not valid').isEmail();
+    req.checkBody('password', 'Password is required').notEmpty();
+    req.checkBody('passwordConfirm', 'Passwords do not match').equals(req.body.password);
+    req.checkBody('token', 'Invalid request').notEmpty();
+
+    var errors = req.validationErrors();
+
+    if (errors) {
+        res.render('reset-password', {
+            errors: errors,
+            token: token,
+            email: email
+        });
+
+    } else {
+        User.findOne({
+            email : req.body.email,
+            resetPasswordToken: token,
+            resetPasswordExpires: {
+                $gt: Date.now()
+            }
+        }, function(err, u) {
+            if (!u) {
+                console.log('user ' + email + ' not found');
+                req.flash('error_msg', 'Invalid request');
+                return res.redirect('/users/forgot-password/');
+            }
+
+            u.resetPasswordToken = undefined;
+            u.resetPasswordExpires = undefined;
+            User.changePassword(u, password, function (err, user) {
+                if (err) throw err;
+                else{
+                    req.flash('success_msg', 'Your password has been changed.');
+                    return res.redirect('/users/login');
+                }
+            });
+        });
+    }
 });
 
 module.exports = router;
