@@ -29,6 +29,7 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.engine('handlebars', exphbs({defaultLayout:'layout'}));
 app.set('view engine', 'handlebars');
+app.locals.copyrightsYear = new Date().getFullYear();
 
 // BodyParser Middleware
 app.use(bodyParser.json());
