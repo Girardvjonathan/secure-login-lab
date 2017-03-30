@@ -1,5 +1,9 @@
 <h2 class="page-header">App configuration</h2>
-
+{{#if errors}}
+    {{#each errors}}
+        <div class="alert alert-danger">{{msg}}</div>
+    {{/each}}
+{{/if}}
 <form action="/configuration/apply" method="POST">
 
 	<div class="panel panel-default">
@@ -32,12 +36,12 @@
 			<div class="form-group">
 				<div class="checkbox">
 					<label>
-						<input type="checkbox" name="passwordComplexity.requireOneNumber" {{#if config.passwordComplexity.requireOneNumber}}checked{{/if}}> Require at least one number
+						<input type="checkbox" name="requireOneNumber" {{#if config.passwordComplexity.requireOneNumber}}checked{{/if}}> Require at least one number
 					</label>
 				</div>
 				<div class="checkbox">
 					<label>
-						<input type="checkbox" name="passwordComplexity.requireOneSymbol" {{#if config.passwordComplexity.requireOneSymbol}}checked{{/if}}> Require at least one symbol
+						<input type="checkbox" name="requireOneSymbol" {{#if config.passwordComplexity.requireOneSymbol}}checked{{/if}}> Require at least one symbol
 					</label>	
 				</div>
 				etc.

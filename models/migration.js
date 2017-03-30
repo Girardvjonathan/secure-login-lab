@@ -1,6 +1,7 @@
 module.exports = function () {
     let User = require('./users');
     let Hash = require('./hash');
+    let Config = require('./config');
     // Init hash
     let hash1 = new Hash({
         id: 1,
@@ -81,8 +82,12 @@ module.exports = function () {
         });
 
     });
-    // // init user
-
+    // init config
+    let config = new Config({
+        compte:1
+    });
+    Config.addconfig(config, function () {
+    });
 
     console.log('Database migrated');
 };

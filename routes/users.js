@@ -4,7 +4,7 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 
 var User = require('../models/users');
-var bouncer = require ("express-bouncer")(2000, 900000);
+var bouncer = require("express-bouncer")(2000, 900000);
 // Register
 router.get('/register', function (req, res) {
     res.render('register');
@@ -87,20 +87,26 @@ passport.deserializeUser(function (id, done) {
 });
 
 
-bouncer.blocked = function (req, res, next, remaining)
-{
-    res.send (429, "Too many requests have been made, " +
+bouncer.blocked = function (req, res, next, remaining) {
+    res.send(429, "Too many requests have been made, " +
         "please wait " + remaining / 1000 + " seconds");
 };
 
-router.post('/login', bouncer.block, function(req, res, next) {
-    passport.authenticate('local', function(err, user, info) {
-        if (err) { return next(err); }
-        if (!user) { return res.redirect('/users/login'); }
-        req.logIn(user, function(err) {
-            if (err) { return next(err); }
-             // res.redirect('/users/' + user.username);
-            bouncer.reset (req);
+router.post('/login', bouncer.block, function (req, res, next) {
+    passport.authenticate('local', function (err, user, info) {
+        if (err) {
+            return next(err);
+        }
+        if (!user) {
+            req.flash('error_msg', 'Wrong credential');
+            return res.redirect('/users/login');
+        }
+        req.logIn(user, function (err) {
+            if (err) {
+                return next(err);
+            }
+            // res.redirect('/users/' + user.username);
+            bouncer.reset(req);
             return res.redirect('/');
         });
     })(req, res, next);

@@ -6,9 +6,9 @@ module.exports = {
         "use strict";
         let username = 'gti619';
         let password = 'gti619';
-        let mongodbUri = 'mongodb://' + username + ':' + password + '@ds147080.mlab.com:47080/gti619';
+        // let mongodbUri = 'mongodb://' + username + ':' + password + '@ds147080.mlab.com:47080/gti619';
         // for local
-        // let mongodbUri = "mongodb://localhost/gti619";
+        let mongodbUri = "mongodb://localhost/new";
 
         let mongoose = require('mongoose');
         mongoose.connect(mongodbUri);

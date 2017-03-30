@@ -2,25 +2,48 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var hbs = require('express-handlebars').create();
+let Config = require('../models/config');
 
 router.get('/', ensureIsAdmin, function(req, res){
-	res.render('configuration', {
-		// dummy config object
-		config: {
-			maxNbAttempts: 3,
-			allowPasswordReset: true,
-			passwordComplexity: {
-				requireOneNumber: false,
-				requireOneSymbol: true
-			}
-		}
-	});
+	Config.getconfig(function (err, config) {
+        res.render('configuration', {
+            // dummy config object
+            config: config
+        });
+    })
 });
 
 router.post('/apply', ensureIsAdmin, function(req, res){
-    req.flash('success_msg', 'Changes have been applied');
-    res.redirect('/configuration');
-})
+    Config.getconfig(function (err, config) {
+        var maxNbAttempts = req.body.maxNbAttempts;
+        var allowPasswordReset = req.body.allowPasswordReset;
+        var requireOneNumber = req.body.requireOneNumber;
+        var requireOneSymbol = req.body.requireOneSymbol;
+		(allowPasswordReset == 'on')? allowPasswordReset=true: allowPasswordReset=false;
+		(requireOneNumber == 'on')? requireOneNumber=true: requireOneNumber=false;
+		(requireOneSymbol == 'on')? requireOneSymbol=true: requireOneSymbol=false;
+
+        // Validation
+        req.checkBody('maxNbAttempts', 'maxNbAttempts is required').notEmpty();
+        req.checkBody('maxNbAttempts', 'maxNbAttempts must be a number').isInt();
+
+        var errors = req.validationErrors();
+
+        if (errors) {
+            return res.render('configuration', {
+                errors: errors
+            });
+        } else {
+            config.maxNbAttempts = maxNbAttempts;
+            config.allowPasswordReset = allowPasswordReset;
+            config.passwordComplexity.requireOneNumber = requireOneNumber;
+            config.passwordComplexity.requireOneSymbol = requireOneSymbol;
+            Config.changeConfig(config);
+        }
+        req.flash('success_msg', 'Changes have been applied');
+        res.redirect('/configuration');
+	});
+});
 
 
 function ensureIsAdmin(req, res, next){

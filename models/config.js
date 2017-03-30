@@ -8,38 +8,43 @@ var mongoose = require('mongoose');
 
 // User Schema
 var configSchema = mongoose.Schema({
-    id: {
+    compte: {
         type: Number,
-        index:true,
+        index: true,
         unique: true
     },
-    name: {
-        type: String,
-        unique:true
+    maxNbAttempts: {
+        type: Number,
+        default: 3
     },
-    current: {
+    allowPasswordReset: {
         type: Boolean,
-        default: false
-    }
+        default: true
+    },
+    passwordComplexity: {
+        requireOneNumber: {
+            type: Boolean,
+            default: false
+        },
+        requireOneSymbol: {
+            type: Boolean,
+            default: false
+        }
+    },
 });
 
 var config = module.exports = mongoose.model('config', configSchema);
 
-module.exports.addconfig = function(newconfig, callback){
+module.exports.addconfig = function (newconfig, callback) {
     newconfig.save(callback);
 }
 
-module.exports.getconfigById = function(id, callback){
-    var query = {id: id};
+module.exports.getconfig = function (callback) {
+    var query = {compte: 1};
     config.findOne(query, callback);
 }
 
-module.exports.getconfigByName = function(name, callback){
-    var query = {name: name};
-    config.findOne(query, callback);
+module.exports.changeConfig = function (config, callback) {
+    config.save(callback);
 }
 
-module.exports.getCurrent = function(callback){
-    var query = {current: true};
-    config.findOne(query, callback);
-}
