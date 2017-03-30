@@ -17,5 +17,7 @@ module.exports = function(app) {
     var users = require('./users');
     app.use('/users', users);
 
+    var configuration = require('./configuration');
+    app.use('/configuration', configuration);
 
 };

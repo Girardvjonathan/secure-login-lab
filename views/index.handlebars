@@ -1,2 +1,9 @@
- <h2 class="page-header">Dashboard</h2>
-<p>Welcome to your dashboard</p>  
+<h2 class="page-header">Dashboard</h2>
+<p>Welcome to your dashboard, {{user.username}}!</p> 
+
+
+{{#if isAdmin}}
+	<a href="/configuration" type="button" class="btn btn-default btn-lg">
+		<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> App configuration
+	</a>
+{{/if}}
