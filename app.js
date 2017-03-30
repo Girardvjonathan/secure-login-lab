@@ -41,7 +41,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Express Session
 app.use(session({
     secret: 'dzndCGNXDV5CAKwxK0UVfiap3EYXo5S2lj3uYRWebZC1RHPCdhRr9bKWw4JIBm9nxpeF2cE5zhyqOxcYWGGypfmDddBkL3Vl',
-    cookie: { secure: true,
+    cookie: {
+        // secure: true,
         maxAge: 300000 // 5 min cookies
     },
     saveUninitialized: true,
@@ -101,13 +102,12 @@ var options = {
 };
 
 db.connectDB(function() {
-    // startup our app at http://localhost:8080
-    // app.listen(app.get('port'), function(){
-    //     console.log('Server started on port '+app.get('port'));
-    // });
-    https.createServer(options, app).listen(app.get('port'), function () {
-        console.log('Started!');
+    app.listen(app.get('port'), function(){
+        console.log('Server started on port '+app.get('port'));
     });
+    // https.createServer(options, app).listen(app.get('port'), function () {
+    //     console.log('Started!');
+    // });
 });
 
 exports = module.exports = app;
