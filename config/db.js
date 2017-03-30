@@ -4,11 +4,11 @@
 module.exports = {
     connectDB: function(callback) {
         "use strict";
-        let username = 'user';
-        let password = 'pass';
-        // let mongodbUri = 'mongodb://' + username + ':' + password + '@ds123050.mlab.com:23050/name';
+        let username = 'gti619';
+        let password = 'gti619';
+        let mongodbUri = 'mongodb://' + username + ':' + password + '@ds147080.mlab.com:47080/gti619';
         // for local
-        let mongodbUri = "mongodb://localhost/gti619";
+        // let mongodbUri = "mongodb://localhost/gti619";
 
         let mongoose = require('mongoose');
         mongoose.connect(mongodbUri);
