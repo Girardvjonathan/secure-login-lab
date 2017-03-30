@@ -6,3 +6,4 @@ server.enc.key
 server.crt
 server.key
 server.csr
+npm-debug.log

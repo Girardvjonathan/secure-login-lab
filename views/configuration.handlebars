@@ -1,0 +1,49 @@
+<h2 class="page-header">App configuration</h2>
+
+<form action="/configuration/apply" method="POST">
+
+	<div class="panel panel-default">
+		<div class="panel-heading">Brute force</div>
+		<div class="panel-body">
+			<div class="form-group">
+				<label for="max-nb-attempts">Maximum number of failed login attempts before account lock</label>
+				<input class="form-control" type="number" value="{{config.maxNbAttempts}}" min="1" name="maxNbAttempts" id="max-nb-attempts"/>
+				<small class="form-text text-muted">One attempt corresponds to one (?) unsuccessful login.</small>
+			</div>
+		</div>
+	</div>
+
+
+	<div class="panel panel-default">
+		<div class="panel-heading">Password reset</div>
+		<div class="panel-body">
+			<div class="form-group">
+				<label>
+					<input type="checkbox" name="allowPasswordReset" {{#if config.allowPasswordReset}}checked{{/if}}> Allow password reset
+				</label>
+			</div>
+		</div>
+	</div>
+
+
+	<div class="panel panel-default">
+		<div class="panel-heading">Password complexity</div>
+		<div class="panel-body">
+			<div class="form-group">
+				<div class="checkbox">
+					<label>
+						<input type="checkbox" name="passwordComplexity.requireOneNumber" {{#if config.passwordComplexity.requireOneNumber}}checked{{/if}}> Require at least one number
+					</label>
+				</div>
+				<div class="checkbox">
+					<label>
+						<input type="checkbox" name="passwordComplexity.requireOneSymbol" {{#if config.passwordComplexity.requireOneSymbol}}checked{{/if}}> Require at least one symbol
+					</label>	
+				</div>
+				etc.
+			</div>
+		</div>
+	</div>
+
+	<input class="btn btn-primary btn-lg" type="submit" value="Apply changes">
+</form>
