@@ -10,7 +10,7 @@ module.exports = function(app) {
 
     // Init db with user
     app.get('/initdb', function(req, res) {
-        require('./../models/migration')();
+        require('./../models/populateDB')();
         return res.send(JSON.stringify("ok"));
     });
 

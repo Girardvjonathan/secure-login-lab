@@ -11,7 +11,7 @@ router.get('/', ensureAuthenticated, function(req, res){
 });
 
 router.get('/initdb', function(req, res) {
-    require('./../models/migration')();
+    require('./../models/populateDB')();
     res.sendStatus(200);
 });
 
