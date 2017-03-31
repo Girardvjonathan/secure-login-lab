@@ -7,6 +7,7 @@ var router = express.Router();
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 let Config = require('../models/config');
+let Log = require('../models/logs.js');
 
 var async = require('async');
 var crypto = require('crypto');
@@ -86,13 +87,16 @@ router.post('/register', function (req, res) {
         });
 
         User.createUser(newUser, function (err, user) {
-            if (err) throw err;
-            console.log(user);
+            if (err) {
+                req.flash('error_msg', err.message);
+                return res.redirect('/users/register');
+                throw err;
+                // console.log(user);
+            } else {
+                req.flash('success_msg', 'You are registered and can now login');
+                res.redirect('/users/login');
+            }
         });
-
-        req.flash('success_msg', 'You are registered and can now login');
-
-        res.redirect('/users/login');
     }
 });
 
@@ -139,12 +143,26 @@ router.post('/login', bouncer.block, function (req, res, next) {
         }
         if (!user) {
             req.flash('error_msg', 'Wrong credential');
+            Log.addLog(new Log({
+                username: req.body.username,
+                ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                action: "Failed login",
+                date: Date.now()
+            }));
             return res.redirect('/users/login');
         }
         req.logIn(user, function (err) {
             if (err) {
                 return next(err);
             }
+
+            Log.addLog(new Log({
+                username: req.body.username,
+                ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                action: "Successful login",
+                date: Date.now()
+            }));
+
             // res.redirect('/users/' + user.username);
             bouncer.reset(req);
             return res.redirect('/');
@@ -254,6 +272,12 @@ router.post('/reset-password', function(req, res) {
             User.changePassword(u, password, function (err, user) {
                 if (err) throw err;
                 else{
+                    Log.addLog(new Log({
+                        username: user.username,
+                        ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                        action: "Password reset",
+                        date: Date.now()
+                    }));
                     req.flash('success_msg', 'Your password has been changed.');
                     return res.redirect('/users/login');
                 }
@@ -298,6 +322,12 @@ router.post('/modify-password', ensureAuthenticated, function(req, res) {
             User.changePassword(req.user, newPassword, function (err, user) {
                 if (err) throw err;
                 else{
+                    Log.addLog(new Log({
+                        username: user.username,
+                        ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                        action: "Password change",
+                        date: Date.now()
+                    }));
                     req.flash('success_msg', 'Your password has been changed.');
                     return res.redirect('/');
                 }
@@ -341,34 +371,29 @@ router.post('/add', ensureIsAdmin, function(req, res) {
                         role: role
                     });
 
-                    User.exists(newUser, function(exists) {
-                        if (exists) {
-                            req.flash('error_msg', 'This user already exists.');
-                            return res.redirect('/users/add');
-                        } else {
-                            crypto.randomBytes(20, function(err, buf) {
-                                newUser.password = buf.toString('hex');
-                                User.createUser(newUser, function (err, user) {
-                                    if (err) throw err;
-                                    else {
-                                        var mailOptions = {
-                                            to : email,
-                                            from : 'loginApp@gmail.com',
-                                            subject : 'GTI619 - LoginApp - Password reset',
-                                            text : 'An account has been created for you on loginApp.\n\n' +
-                                                'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                                                'http://' + req.headers.host + '/users/reset-password/{{token}}&' + user.email + '\n\n' +
-                                                'You have one hour to complete to registration.\n'
-                                        };
-                                        async.waterfall(getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
-                                            if (err) return next(err);
-                                            req.flash('success_msg', 'The user has been created and an email has been sent to ' + email + ' containing instructions to define a password.');
-                                            res.redirect('/');
-                                        });
-                                    }
+                    crypto.randomBytes(20, function(err, buf) {
+                        newUser.password = buf.toString('hex');
+                        User.createUser(newUser, function (err, user) {
+                            if (err) {
+                                req.flash('error_msg', err.message);
+                                return res.redirect('/users/add');
+                            } else {
+                                var mailOptions = {
+                                    to : email,
+                                    from : 'loginApp@gmail.com',
+                                    subject : 'GTI619 - LoginApp - Password reset',
+                                    text : 'An account has been created for you on loginApp.\n\n' +
+                                        'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                                        'http://' + req.headers.host + '/users/reset-password/{{token}}&' + user.email + '\n\n' +
+                                        'You have one hour to complete to registration.\n'
+                                };
+                                async.waterfall(getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
+                                    if (err) return next(err);
+                                    req.flash('success_msg', 'The user has been created and an email has been sent to ' + email + ' containing instructions to define a password.');
+                                    res.redirect('/');
                                 });
-                            });
-                        }
+                            }
+                        });
                     });
                 } else {
                     req.flash('error_msg', 'The password you have entered as your "current" one is WRONG. Are you even trying?');

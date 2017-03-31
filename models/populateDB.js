@@ -5,7 +5,9 @@ module.exports = function () {
     mongoose.connection.collections['hashes'].drop( function(err) {
         mongoose.connection.collections['configs'].drop( function(err) {
             mongoose.connection.collections['users'].drop( function(err) {
-                createData();
+                // mongoose.connection.collections['logs'].drop( function(err) {
+                    createData();
+                // });
             });
         });
     });
@@ -14,6 +16,7 @@ module.exports = function () {
         let User = require('./users');
         let Hash = require('./hash');
         let Config = require('./config');
+        let Log = require('./logs');
         // Init hash
         let hash1 = new Hash({
             id: 1,

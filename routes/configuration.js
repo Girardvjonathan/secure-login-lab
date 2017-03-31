@@ -2,7 +2,23 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var hbs = require('express-handlebars').create();
+var handlebars = require('handlebars');
+var moment = require('moment');
 let Config = require('../models/config');
+let Log = require('../models/logs');
+
+handlebars.registerHelper('formatTime', function (date, format) {
+    var mmnt = moment(date);
+    return mmnt.format(format);
+});
+
+router.get('/logs', ensureIsAdmin, function(req, res){
+    Log.getLogs(function(err, logs) {
+        res.render('logs', {
+            logs: logs
+        });
+    });
+});
 
 router.get('/', ensureIsAdmin, function(req, res){
 	Config.getconfig(function (err, config) {
