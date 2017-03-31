@@ -26,6 +26,8 @@ let UserSchema = mongoose.Schema({
     },
     salt: String,
     hashId: Number,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
 });
 
 let User = module.exports = mongoose.model('User', UserSchema);
@@ -52,6 +54,26 @@ module.exports.authenticate = function (plainText, user) {
     });
     //TODO verify
 };
+
+module.exports.changePassword = function(user, newPassword, callback) {
+    user.salt = makeSalt();
+    Hash.getCurrent(function (err, hash) {
+        user.password = encryptPassword(newPassword, hash.name, user.salt);
+        user.hashId = hash.id;
+        user.save(callback);
+    });
+}
+
+module.exports.exists = function(u, callback){
+    User.find({$or:[ {'username': u.username}, {'email': u.email}]} , function(err,user) {
+        if (err || user.length > 0) {     // user does not come back null, so check length
+            callback(1);
+            return;
+        } 
+        //no user
+        callback(0);
+    });
+}
 
 let makeSalt = function () {
     return Math.round((new Date().valueOf() * Math.random())) + '';
