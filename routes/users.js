@@ -2,10 +2,17 @@ const ONE_HOUR = 3600000;
 const EMAIL_SENDER = "gti619.loginapp@gmail.com";
 const EMAIL_SENDER_PW = "gti619gti619"; // could put credentials in seperate file
 
+
+var accountSid = 'ACf5a14cf00e65aaa17fa0632b40f7994e'; // Your Account SID from www.twilio.com/console
+var authToken = '2a9ed694a3dea5963e30b4a7c3409f9b';   // Your Auth Token from www.twilio.com/console
+var twilio = require('twilio');
+var client = new twilio.RestClient(accountSid, authToken);
+
 var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
+var TotpStrategy = require('passport-totp').Strategy;
 let Config = require('../models/config');
 let Log = require('../models/logs.js');
 
@@ -119,6 +126,7 @@ passport.use(new LocalStrategy(
                 .catch(err => console.log(err));
         });
     }));
+
 
 passport.serializeUser(function (user, done) {
     done(null, user.id);
@@ -403,6 +411,19 @@ router.post('/add', ensureIsAdmin, function(req, res) {
             }).catch(err => console.log(err));
     }
 });
+
+router.get('/tfa-setup', ensureAuthenticated, function(req, res) {
+        client.messages.create({
+            body: 'Hello from Node',
+            to: '+15143480896',  // Text this number
+            from: '+14387938676 ' // From a valid Twilio number
+        }, function(err, message) {
+            console.log(message.sid);
+        });
+
+        res.render('tfa-setup');
+    }
+);
 
 
 function ensureAuthenticated(req, res, next){
