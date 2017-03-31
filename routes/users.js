@@ -163,57 +163,16 @@ router.post('/forgot-password', function(req, res, next) {
     isPasswordResettable(function(passwordResettable){
         if (passwordResettable) {
             var email = req.body.email;
-            async.waterfall([
-                function(done) {
-                    crypto.randomBytes(20, function(err, buf) {
-                        var token = buf.toString('hex');
-                        done(err, token);
-                    });
-                },
-                function(token, done) {
-                    User.findOne({
-                        email : req.body.email
-                    }, function(err, user) {
-                        if (!user) {
-                            console.log("no user found with: " + email);
-                            req.flash('error', 'No account with that email address exists.');
-                            return res.redirect('/users/forgot-password');
-                        }
-                        user.resetPasswordToken = token;
-                        user.resetPasswordExpires = Date.now() + ONE_HOUR;
-
-                        user.save(function(err) {
-                            done(err, token, user);
-                        });
-                    });
-                },
-                function(token, user, done) {
-                    var smtpTransport = require('nodemailer-smtp-transport');
-                    var smtpTransport = nodemailer.createTransport(smtpTransport({
-                        service : "gmail",
-                        auth : {
-                            user : 'gti510stapp@gmail.com',
-                            pass : 'STAPP510STAPP',
-                        }
-                    }));
-
-                    var mailOptions = {
-                        to : user.email,
-                        from : 'gti510stapp@gmail.com',
-                        subject : 'GTI619 - LoginApp - Password reset',
-                        text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
-                            'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                            'http://' + req.headers.host + '/users/reset-password/' + token + '&' + user.email + '\n\n' +
-                            'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-                    };
-
-                    smtpTransport.sendMail(mailOptions, function(err) {
-                        console.log("message send to :" + user.email);
-                        req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
-                        done(err, 'done');
-                    });
-                }
-            ], function(err) {
+            var mailOptions = {
+                to : email,
+                from : 'gti510stapp@gmail.com',
+                subject : 'GTI619 - LoginApp - Password reset',
+                text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
+                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                    'http://' + req.headers.host + '/users/reset-password/{{token}}&' + email + '\n\n' +
+                    'If you did not request this, please ignore this email and your password will remain unchanged.\n'
+            };
+            async.waterfall(getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
                 if (err) return next(err);
                 req.flash('success_msg', 'The instructions to reset your password have been sent to your email address.');
                 res.redirect('/users/login');
@@ -300,5 +259,184 @@ router.post('/reset-password', function(req, res) {
         });
     }
 });
+
+router.get('/modify-password', ensureAuthenticated, function(req, res) {
+    res.render('modify-password');
+});
+
+router.post('/modify-password', ensureAuthenticated, function(req, res) {
+    let currentPassword = req.body.currentPassword;
+    let newPassword = req.body.newPassword;
+    let newPasswordConfirm = req.body.newPasswordConfirm;
+
+    req.checkBody('currentPassword', 'Current password is required').notEmpty();
+    req.checkBody('newPassword', 'New password is required').notEmpty();
+    req.checkBody('newPasswordConfirm', 'New password confirmation is required').notEmpty();
+    req.checkBody('newPasswordConfirm', 'New passwords do not match').equals(req.body.newPassword);
+
+    var errors = req.validationErrors();
+
+    if (errors) {
+        res.render('modify-password', {
+            errors: errors
+        });
+    } else {
+        User.authenticate(currentPassword, req.user)
+            .then((response) => {
+                if (response.isMatch) {
+                    modifyPassword();
+                } else {
+                    req.flash('error_msg', 'The password you have entered as your "current" one is WRONG. Are you even trying?');
+                    return res.redirect('/users/modify-password/');
+                }
+            })
+            .catch(err => console.log(err));
+
+        function modifyPassword(){
+            User.changePassword(req.user, newPassword, function (err, user) {
+                if (err) throw err;
+                else{
+                    req.flash('success_msg', 'Your password has been changed.');
+                    return res.redirect('/');
+                }
+            });
+        }
+    }
+});
+
+router.get('/add', ensureIsAdmin, function(req, res) {
+    res.render('add-user');
+});
+
+router.post('/add', ensureIsAdmin, function(req, res) {
+    let currentPassword = req.body.currentPassword;
+    let username = req.body.username;
+    let email = req.body.email;
+    let name = req.body.name;
+    let role = req.body.role;
+
+    req.checkBody('currentPassword', 'Current password is required').notEmpty();
+    req.checkBody('username', 'New password is required').notEmpty();
+    req.checkBody('email', 'New password is required').notEmpty();
+    req.checkBody('name', 'New password is required').notEmpty();
+    req.checkBody('role', 'New password is required').notEmpty();
+    req.checkBody('email', 'Email is not valid').isEmail();
+
+    var errors = req.validationErrors();
+
+    if (errors) {
+        res.render('modify-password', {
+            errors: errors
+        });
+    } else {
+        User.authenticate(currentPassword, req.user)
+            .then((response) => {
+                if (response.isMatch) {
+                    var newUser = new User({
+                        name: name,
+                        email: email,
+                        username: username,
+                        role: role
+                    });
+
+                    User.exists(newUser, function(exists) {
+                        if (exists) {
+                            req.flash('error_msg', 'This user already exists.');
+                            return res.redirect('/users/add');
+                        } else {
+                            crypto.randomBytes(20, function(err, buf) {
+                                newUser.password = buf.toString('hex');
+                                User.createUser(newUser, function (err, user) {
+                                    if (err) throw err;
+                                    else {
+                                        var mailOptions = {
+                                            to : email,
+                                            from : 'loginApp@gmail.com',
+                                            subject : 'GTI619 - LoginApp - Password reset',
+                                            text : 'An account has been created for you on loginApp.\n\n' +
+                                                'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                                                'http://' + req.headers.host + '/users/reset-password/{{token}}&' + user.email + '\n\n' +
+                                                'You have one hour to complete to registration.\n'
+                                        };
+                                        async.waterfall(getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
+                                            if (err) return next(err);
+                                            req.flash('success_msg', 'The user has been created and an email has been sent to ' + email + ' containing instructions to define a password.');
+                                            res.redirect('/');
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    });
+                } else {
+                    req.flash('error_msg', 'The password you have entered as your "current" one is WRONG. Are you even trying?');
+                    return res.redirect('/users/add');
+                }
+
+            }).catch(err => console.log(err));
+    }
+});
+
+
+function ensureAuthenticated(req, res, next){
+    if(req.isAuthenticated()){
+        return next();
+    } else {
+        res.redirect('/users/login');
+    }
+}
+
+function ensureIsAdmin(req, res, next){
+    if(req.isAuthenticated() && req.user.role === "admin"){
+        return next();
+    } else {
+        //req.flash('error_msg','You are not logged in');
+        res.redirect('/users/login');
+    }
+}
+
+function getResetPasswordEmailWaterfall(destEmail, mailOptions, req, res){
+    return [
+            function(done) {
+                crypto.randomBytes(20, function(err, buf) {
+                    var token = buf.toString('hex');
+                    done(err, token);
+                });
+            },
+            function(token, done) {
+                User.findOne({
+                    email : destEmail
+                }, function(err, user) {
+                    if (!user) {
+                        console.log("no user found with: " + destEmail);
+                        req.flash('error', 'No account with that email address exists.');
+                        return res.redirect('/users/forgot-password');
+                    }
+                    user.resetPasswordToken = token;
+                    user.resetPasswordExpires = Date.now() + ONE_HOUR;
+
+                    user.save(function(err) {
+                        done(err, token, user);
+                    });
+                });
+            },
+            function(token, user, done) {
+                var smtpTransport = require('nodemailer-smtp-transport');
+                var smtpTransport = nodemailer.createTransport(smtpTransport({
+                    service : "gmail",
+                    auth : {
+                        user : 'gti510stapp@gmail.com',
+                        pass : 'STAPP510STAPP',
+                    }
+                }));
+                mailOptions.text = mailOptions.text.replace("{{token}}", token);
+                smtpTransport.sendMail(mailOptions, function(err) {
+                    console.log("message send to :" + user.email);
+                    req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
+                    done(err, 'done');
+                });
+            }
+    ];
+}
 
 module.exports = router;

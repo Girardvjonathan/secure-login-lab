@@ -85,3 +85,25 @@ body {
 footer{
   margin-top:40px;
 }
+
+
+
+/* Custom CSS */
+body, html {height: 100%;}
+.container {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+}
+.container > .header {
+  flex: 0 1 auto;
+}
+.container > .row {
+  flex: 1 1 auto;
+}
+.container > .footer {
+  flex: 0 1 40px;
+}
+section.main {
+  margin-top: 20px;
+}

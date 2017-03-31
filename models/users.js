@@ -64,6 +64,17 @@ module.exports.changePassword = function(user, newPassword, callback) {
     });
 }
 
+module.exports.exists = function(u, callback){
+    User.find({$or:[ {'username': u.username}, {'email': u.email}]} , function(err,user) {
+        if (err || user.length > 0) {     // user does not come back null, so check length
+            callback(1);
+            return;
+        } 
+        //no user
+        callback(0);
+    });
+}
+
 let makeSalt = function () {
     return Math.round((new Date().valueOf() * Math.random())) + '';
 };
