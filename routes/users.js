@@ -1,3 +1,7 @@
+const ONE_HOUR = 3600000;
+const EMAIL_SENDER = "gti619.loginapp@gmail.com";
+const EMAIL_SENDER_PW = "gti619gti619"; // could put credentials in seperate file
+
 var express = require('express');
 var router = express.Router();
 var passport = require('passport');
@@ -11,8 +15,8 @@ var smtpTransport = require('nodemailer-smtp-transport');
 var smtpTransport = nodemailer.createTransport(smtpTransport({
     service : "gmail",
     auth : {
-        user : 'gti510stapp@gmail.com',
-        pass : 'STAPP510STAPP',
+        user : EMAIL_SENDER,
+        pass : EMAIL_SENDER_PW,
     }
 }));
 
@@ -24,8 +28,6 @@ var isPasswordResettable = function(callback) {
     });
 }
 
-
-const ONE_HOUR = 3600000;
 
 // Register
 router.get('/register', function (req, res) {
@@ -165,7 +167,7 @@ router.post('/forgot-password', function(req, res, next) {
             var email = req.body.email;
             var mailOptions = {
                 to : email,
-                from : 'gti510stapp@gmail.com',
+                from : EMAIL_SENDER,
                 subject : 'GTI619 - LoginApp - Password reset',
                 text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
                     'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
@@ -286,7 +288,7 @@ router.post('/modify-password', ensureAuthenticated, function(req, res) {
                 if (response.isMatch) {
                     modifyPassword();
                 } else {
-                    req.flash('error_msg', 'The password you have entered as your "current" one is WRONG. Are you even trying?');
+                    req.flash('error_msg', 'The password you have entered as your "current" one is WRONG.');
                     return res.redirect('/users/modify-password/');
                 }
             })
@@ -425,8 +427,8 @@ function getResetPasswordEmailWaterfall(destEmail, mailOptions, req, res){
                 var smtpTransport = nodemailer.createTransport(smtpTransport({
                     service : "gmail",
                     auth : {
-                        user : 'gti510stapp@gmail.com',
-                        pass : 'STAPP510STAPP',
+                        user : EMAIL_SENDER,
+                        pass : EMAIL_SENDER_PW,
                     }
                 }));
                 mailOptions.text = mailOptions.text.replace("{{token}}", token);
