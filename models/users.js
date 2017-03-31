@@ -33,12 +33,19 @@ let UserSchema = mongoose.Schema({
 let User = module.exports = mongoose.model('User', UserSchema);
 
 module.exports.createUser = function (newUser, callback) {
-    newUser.salt = makeSalt();
-    Hash.getCurrent(function (err, hash) {
-        newUser.password = encryptPassword(newUser.password, hash.name, newUser.salt);
-        newUser.hashId = hash.id;
-        newUser.save(callback);
-    });
+   User.exists(newUser, function(exists) {
+        if (exists) {
+            callback({message: 'This user already exists.'});
+        } else {
+            newUser.salt = makeSalt();
+            Hash.getCurrent(function (err, hash) {
+                newUser.password = encryptPassword(newUser.password, hash.name, newUser.salt);
+                newUser.hashId = hash.id;
+                newUser.save(callback);
+            });
+        }
+    })
+
 };
 
 // Adapted from https://github.com/madhums/node-express-mongoose-demo/blob/master/app/models/user.js

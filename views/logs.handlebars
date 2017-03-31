@@ -1,0 +1,16 @@
+<h2 class="page-header">Activity logs</h2>
+{{#if errors}}
+    {{#each errors}}
+        <div class="alert alert-danger">{{msg}}</div>
+    {{/each}}
+{{/if}}
+
+<ul class="list-group">
+    {{#each logs}}
+		<li class="list-group-item">
+			<span class="label label-primary">{{formatTime date "MM-DD-YYYY H:mm:ss"}}</span>
+			<span class="badge">{{action}}</span>
+			{{username}} | {{ipAddress}}
+		</li>
+    {{/each}}
+</ul>
