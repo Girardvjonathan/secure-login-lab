@@ -24,6 +24,14 @@ let UserSchema = mongoose.Schema({
         type: String,
         default: "Préposé aux clients résidentiels"
     },
+    nbFailedLogins: {
+        type: Number,
+        default: 0
+    },
+    locked: {
+        type: Boolean,
+        default: false
+    },
     twoFactorEnabled: Boolean,
     twoFactorToken: String,
     phoneNumber: String,
@@ -99,6 +107,29 @@ module.exports.checkTwoFactor = function(user, code, callback) {
     } else {
         callback(false);
     }
+}
+
+module.exports.lock = function(username, callback) {
+    User.getUserByUsername(username, function(err, user){
+        user.locked = true;
+        user.save(callback);
+    });
+}
+
+module.exports.incrementFailedLogins = function(username, callback) {
+    User.getUserByUsername(username, function(err, user){
+        if (user) {
+            user.nbFailedLogins++;
+            user.save(callback(user.nbFailedLogins));
+        } else {
+            callback(0);
+        }
+    });
+}
+
+module.exports.resetFailedLogins = function(user, callback) {
+    user.nbFailedLogins = 0;
+    user.save(callback);
 }
 
 let makeSalt = function () {

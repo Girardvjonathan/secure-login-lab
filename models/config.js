@@ -17,6 +17,10 @@ var configSchema = mongoose.Schema({
         type: Number,
         default: 3
     },
+    nbFailsPerAttempt: {
+        type: Number,
+        default: 2
+    },
     allowPasswordReset: {
         type: Boolean,
         default: true

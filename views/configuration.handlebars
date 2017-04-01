@@ -7,12 +7,18 @@
 <form action="/configuration/apply" method="POST">
 
 	<div class="panel panel-default">
-		<div class="panel-heading">Brute force</div>
+		<div class="panel-heading">Brute force protection</div>
 		<div class="panel-body">
 			<div class="form-group">
-				<label for="max-nb-attempts">Maximum number of failed login attempts before account lock</label>
+				<label for="max-nb-attempts">Maximum number of failed attempts before account lock</label>
 				<input class="form-control" type="number" value="{{config.maxNbAttempts}}" min="1" name="maxNbAttempts" id="max-nb-attempts"/>
-				<small class="form-text text-muted">One attempt corresponds to one (?) unsuccessful login.</small>
+				<small class="form-text text-muted">Upon the defined number of failed attempts defined above for one account, the said account will be locked to prevent brute force attacks on it. One failed attempt corresponds to the number of failed login defined in the field below.</small>
+			</div>
+
+			<div class="form-group">
+				<label for="nb-fails-per-attempt">Number of failed logins per attempt</label>
+				<input class="form-control" type="number" value="{{config.nbFailsPerAttempt}}" min="1" name="nbFailsPerAttempt" id="nb-fails-per-attempt"/>
+				<small class="form-text text-muted">This value defines the number of failed logins per failed attempt.</small>
 			</div>
 		</div>
 	</div>
