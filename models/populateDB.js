@@ -77,6 +77,22 @@ module.exports = function () {
                 email: 'chaton@mailinator.com',
             });
 
+            let user5 = new User({
+                name: 'Utilisateur1',
+                username: 'Utilisateur1',
+                password: 'Utilisateur1',
+                email: 'Utilisateur1@mailinator.com',
+                role: 'Préposé aux clients résidentiels'
+            });
+
+            let user6 = new User({
+                name: 'Utilisateur2',
+                username: 'Utilisateur2',
+                password: 'Utilisateur2',
+                email: 'Utilisateur2@mailinator.com',
+                role: 'Préposé aux clients d’affaire'
+            });
+
 
             User.createUser(user1, function (err, user) {
                 //console.log(err)
@@ -94,6 +110,12 @@ module.exports = function () {
                 //console.log(user)
             });
             User.createUser(admin2, function (err, user) {
+                //console.log(user)
+            });
+            User.createUser(user5, function (err, user) {
+                //console.log(user)
+            });
+            User.createUser(user6, function (err, user) {
                 //console.log(user)
             });
 
