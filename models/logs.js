@@ -24,5 +24,7 @@ module.exports.addLog = function (newLog, callback) {
 }
 
 module.exports.getLogs = function (callback) {
-    Log.find({}, callback);
+    Log.find({}, null, {
+        sort:{date: -1}
+    }, callback);
 }

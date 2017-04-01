@@ -178,9 +178,8 @@ router.post('/login', bouncer.block, function (req, res, next) {
                     
                 });
             } else {
-
                 Log.addLog(new Log({
-                    username: req.body.username,
+                    username: user.username,
                     ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
                     action: "Successful login",
                     date: Date.now()
@@ -195,7 +194,10 @@ router.post('/login', bouncer.block, function (req, res, next) {
 });
 
 router.get('/two-factor-auth', function(req, res){
-    res.render('two-factor-auth');
+    if (req.user && req.user.twoFactorToken)
+        res.render('two-factor-auth');
+    else
+        return res.redirect('/');            
 });
 
 router.post('/two-factor-auth', function(req, res) {
@@ -212,8 +214,21 @@ router.post('/two-factor-auth', function(req, res) {
         // console.log(req.user);
         User.checkTwoFactor(req.user, twoFactorCode, function(validated){
             if (validated) {
+                Log.addLog(new Log({
+                    username: req.user.username,
+                    ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                    action: "Successful login",
+                    date: Date.now()
+                }));
+
                 res.redirect('/');
             } else {
+                Log.addLog(new Log({
+                    username: req.user.username,
+                    ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                    action: "Failed login (2-factor)",
+                    date: Date.now()
+                }));
                 req.flash('error_msg', 'The verification code you supplied is incorrect.');
                 res.redirect('/users/two-factor-auth');
             }
