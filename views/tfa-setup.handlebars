@@ -10,16 +10,18 @@
 	<div class="panel panel-default">
 		<div class="panel-heading">Two factor authentication</div>
 		<div class="panel-body">
-
 			<div class="form-group">
 				<label>
 					<input type="checkbox" name="twoFactorEnabled" {{#if user.twoFactorEnabled}}checked{{/if}} value='true' /> Enable two-factor authentication
 				</label>
+				<p>
+					<small class="form-text text-muted">When two-factor authentication is enabled, you will be required to validate your identity through SMS verification upon login.</small>
+				</p>
 			</div>
 
 			<div class="form-group">
 				<label for="phone-number">Phone number</label>
-				<input class="form-control" type="number" value="{{user.phoneNumber}}" name="phoneNumber" id="phone-number" placeholder="15146667777" />
+				<input class="form-control" type="number" value="{{user.phoneNumber}}" name="phoneNumber" id="phone-number" placeholder="Example: 15146667777" />
 				<small class="form-text text-muted">To enable two-factor authentication, you need to enter your phone number.</small>
 			</div>
 		</div>
