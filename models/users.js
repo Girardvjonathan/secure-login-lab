@@ -22,7 +22,7 @@ let UserSchema = mongoose.Schema({
     },
     role: {
         type: String,
-        default: "user"
+        default: "Préposé aux clients résidentiels"
     },
     twoFactorEnabled: Boolean,
     twoFactorToken: String,
@@ -67,7 +67,7 @@ module.exports.authenticate = function (plainText, user) {
 };
 
 module.exports.changePassword = function(user, newPassword, callback) {
-    user.salt = makeSalt();
+    // user.salt = makeSalt();
     Hash.getCurrent(function (err, hash) {
         user.password = encryptPassword(newPassword, hash.name, user.salt);
         user.hashId = hash.id;
@@ -84,6 +84,21 @@ module.exports.exists = function(u, callback){
         //no user
         callback(0);
     });
+}
+
+
+module.exports.setTwoFactor = function(user, callback) {
+    user.twoFactorToken = Math.floor(1000 + Math.random() * 9000);
+    user.save(callback(user.twoFactorToken));
+}
+
+module.exports.checkTwoFactor = function(user, code, callback) {
+    if (code == user.twoFactorToken) {
+        user.twoFactorToken = undefined;
+        user.save(callback(true));
+    } else {
+        callback(false);
+    }
 }
 
 let makeSalt = function () {

@@ -12,7 +12,6 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
-var TotpStrategy = require('passport-totp').Strategy;
 let Config = require('../models/config');
 let Log = require('../models/logs.js');
 
@@ -164,19 +163,63 @@ router.post('/login', bouncer.block, function (req, res, next) {
                 return next(err);
             }
 
-            Log.addLog(new Log({
-                username: req.body.username,
-                ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
-                action: "Successful login",
-                date: Date.now()
-            }));
-
-            // res.redirect('/users/' + user.username);
             bouncer.reset(req);
-            return res.redirect('/');
+
+            if (user.twoFactorEnabled === true) {
+                User.setTwoFactor(user, function(token){
+                    client.messages.create({
+                        body: 'Your verification code is: ' + token,
+                        to: '+15143480896',  // Text this number
+                        from: '+14387938676 ' // From a valid Twilio number
+                    }, function(err, message) {
+                        req.user = user;
+                        return res.redirect('/users/two-factor-auth');
+                    });
+                    
+                });
+            } else {
+
+                Log.addLog(new Log({
+                    username: req.body.username,
+                    ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                    action: "Successful login",
+                    date: Date.now()
+                }));
+
+                // res.redirect('/users/' + user.username);
+                return res.redirect('/');                
+            }
+
         });
     })(req, res, next);
 });
+
+router.get('/two-factor-auth', function(req, res){
+    res.render('two-factor-auth');
+});
+
+router.post('/two-factor-auth', function(req, res) {
+    var twoFactorCode = req.body.twoFactorCode;
+    req.checkBody("twoFactorCode", "The code is required to login").notEmpty();
+
+    var errors = req.validationErrors();
+
+    if (errors) {
+        res.render('two-factor-auth', {
+            errors: errors
+        });
+    } else {
+        // console.log(req.user);
+        User.checkTwoFactor(req.user, twoFactorCode, function(validated){
+            if (validated) {
+                res.redirect('/');
+            } else {
+                req.flash('error_msg', 'The verification code you supplied is incorrect.');
+                res.redirect('/users/two-factor-auth');
+            }
+        });
+    }
+})
 
 router.get('/logout', function (req, res) {
     req.logout();
@@ -413,21 +456,50 @@ router.post('/add', ensureIsAdmin, function(req, res) {
 });
 
 router.get('/tfa-setup', ensureAuthenticated, function(req, res) {
-        client.messages.create({
-            body: 'Hello from Node',
-            to: '+15143480896',  // Text this number
-            from: '+14387938676 ' // From a valid Twilio number
-        }, function(err, message) {
-            console.log(message.sid);
-        });
-
         res.render('tfa-setup');
     }
 );
 
 
+router.post('/tfa-setup', ensureAuthenticated, function(req, res) {
+        var enabled = req.body.twoFactorEnabled;
+        var phoneNumber = req.body.phoneNumber;
+
+        if (enabled === "true") {
+            enabled = true;
+            req.checkBody('phoneNumber', 'The phone number is required when enabling authentication.').notEmpty();
+        }
+
+        var errors = req.validationErrors();
+
+        if (errors) {
+            res.render('tfa-setup', {
+                errors: errors
+            });
+        } else {
+            User.findOne({
+                email : req.user.email
+            }, function(err, user) {
+                if (!user) {
+                    console.log("no user found with: " + destEmail);
+                    req.flash('error', 'No account with that email address exists.');
+                    return res.redirect('/users/forgot-password');
+                }
+                user.phoneNumber = phoneNumber+"";
+                user.twoFactorEnabled = enabled;
+
+                user.save();
+                req.flash('success_msg', 'Changes have been applied.');
+                res.redirect('/');
+            });
+        }
+    }
+);
+
+
+
 function ensureAuthenticated(req, res, next){
-    if(req.isAuthenticated()){
+    if(req.isAuthenticated() && !req.user.twoFactorToken){
         return next();
     } else {
         res.redirect('/users/login');
@@ -435,7 +507,7 @@ function ensureAuthenticated(req, res, next){
 }
 
 function ensureIsAdmin(req, res, next){
-    if(req.isAuthenticated() && req.user.role === "admin"){
+    if(req.isAuthenticated() && !req.user.twoFactorToken && req.user.role === "admin"){
         return next();
     } else {
         //req.flash('error_msg','You are not logged in');
