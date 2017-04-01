@@ -67,7 +67,8 @@ function ensureIsAdmin(req, res, next){
         return next();
     } else {
         //req.flash('error_msg','You are not logged in');
-        res.redirect('/users/login');
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
     }
 }
 module.exports = router;

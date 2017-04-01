@@ -1,0 +1,14 @@
+<h2 class="page-header">{{role}}</h2>
+{{#if errors}}
+    {{#each errors}}
+        <div class="alert alert-danger">{{msg}}</div>
+    {{/each}}
+{{/if}}
+
+<ul class="list-group">
+    {{#each users}}
+		<li class="list-group-item">
+			<span class="label label-default">{{name}}</span> {{email}}
+		</li>
+    {{/each}}
+</ul>

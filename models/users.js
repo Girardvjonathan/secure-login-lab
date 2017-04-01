@@ -157,3 +157,9 @@ module.exports.getUserByUsername = function (username, callback) {
 module.exports.getUserById = function (id, callback) {
     User.findById(id, callback);
 };
+
+module.exports.getAllBy = function (by, value, callback) {
+    let query = {};
+    query[by] = value;
+    User.find(query, callback);
+};

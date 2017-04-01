@@ -44,7 +44,7 @@ module.exports = function () {
                 name: 'user2',
                 password: 'user2',
                 email: 'user2@mailinator.com',
-                role: "Préposé aux clients d’affaire"
+                role: "Préposé aux clients d'affaires"
             });
 
             let admin1 = new User({
@@ -90,7 +90,7 @@ module.exports = function () {
                 username: 'Utilisateur2',
                 password: 'Utilisateur2',
                 email: 'Utilisateur2@mailinator.com',
-                role: 'Préposé aux clients d’affaire'
+                role: 'Préposé aux clients d\'affaires'
             });
 
 

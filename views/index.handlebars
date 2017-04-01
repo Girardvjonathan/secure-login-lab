@@ -6,7 +6,7 @@
 	{{#if isAdmin}}
 		<h4>Admin features</h4>
 		<a href="/configuration" type="button" class="btn btn-default btn-lg">
-			<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> App configuration
+			<span class="glyphicon glyphicon-cog" aria-hidden="true"></span> Security configuration
 		</a>
 		<a href="/users/add" type="button" class="btn btn-default btn-lg">
 			<span class="glyphicon glyphicon-user" aria-hidden="true"></span> Add user
@@ -16,6 +16,18 @@
 		</a>
 	{{/if}}
 
+
+	<h4 class="space-top">List of users</h4>
+	{{#if homeOfficersAccess}}
+		<a href="/users/home-officers" type="button" class="btn btn-default btn-lg">
+			<span class="glyphicon glyphicon-home" aria-hidden="true"></span> Préposés aux clients résidentiels
+		</a>
+	{{/if}}
+	{{#if businessOfficersAccess}}
+		<a href="/users/business-officers" type="button" class="btn btn-default btn-lg">
+			<span class="glyphicon glyphicon-briefcase" aria-hidden="true"></span> Préposés aux clients d’affaire
+		</a>
+	{{/if}}
 
 	<h4 class="space-top">Account options</h4>
 	<a href="/users/modify-password" type="button" class="btn btn-default btn-lg">

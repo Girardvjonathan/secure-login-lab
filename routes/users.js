@@ -539,39 +539,66 @@ router.get('/tfa-setup', ensureAuthenticated, function(req, res) {
 
 
 router.post('/tfa-setup', ensureAuthenticated, function(req, res) {
-        var enabled = req.body.twoFactorEnabled;
-        var phoneNumber = req.body.phoneNumber;
+    var enabled = req.body.twoFactorEnabled;
+    var phoneNumber = req.body.phoneNumber;
 
-        if (enabled === "true") {
-            enabled = true;
-            req.checkBody('phoneNumber', 'The phone number is required when enabling authentication.').notEmpty();
-        }
-
-        var errors = req.validationErrors();
-
-        if (errors) {
-            res.render('tfa-setup', {
-                errors: errors
-            });
-        } else {
-            User.findOne({
-                email : req.user.email
-            }, function(err, user) {
-                if (!user) {
-                    console.log("no user found with: " + destEmail);
-                    req.flash('error', 'No account with that email address exists.');
-                    return res.redirect('/users/forgot-password');
-                }
-                user.phoneNumber = phoneNumber+"";
-                user.twoFactorEnabled = enabled;
-
-                user.save();
-                req.flash('success_msg', 'Changes have been applied.');
-                res.redirect('/');
-            });
-        }
+    if (enabled === "true") {
+        enabled = true;
+        req.checkBody('phoneNumber', 'The phone number is required when enabling two-factor authentication.').notEmpty();
     }
-);
+
+    var errors = req.validationErrors();
+
+    if (errors) {
+        res.render('tfa-setup', {
+            errors: errors
+        });
+    } else {
+        User.findOne({
+            email : req.user.email
+        }, function(err, user) {
+            if (!user) {
+                console.log("no user found with: " + destEmail);
+                req.flash('error', 'No account with that email address exists.');
+                return res.redirect('/users/forgot-password');
+            }
+            user.phoneNumber = phoneNumber+"";
+            user.twoFactorEnabled = enabled;
+
+            user.save();
+            req.flash('success_msg', 'Changes have been applied.');
+            res.redirect('/');
+        });
+    }
+});
+
+router.get('/home-officers', ensureAuthenticated, function(req, res){
+    if (req.user.role === "admin" || req.user.role == "Préposé aux clients résidentiels") {
+        User.getAllBy('role', 'Préposé aux clients résidentiels', function(err, users){
+            res.render('list-users', {
+                users: users,
+                role: "Préposé aux clients résidentiels"
+            });
+        });
+    } else {
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
+    }
+});
+
+router.get('/business-officers', ensureAuthenticated, function(req, res){
+    if (req.user.role === "admin" || req.user.role == "Préposé aux clients d'affaires") {
+        User.getAllBy('role', 'Préposé aux clients d\'affaires', function(err, users){
+            res.render('list-users', {
+                users: users,
+                role: "Préposé aux clients d'affaires"
+            });
+        });
+    } else {
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
+    }
+});
 
 
 
@@ -588,7 +615,8 @@ function ensureIsAdmin(req, res, next){
         return next();
     } else {
         //req.flash('error_msg','You are not logged in');
-        res.redirect('/users/login');
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
     }
 }
 
