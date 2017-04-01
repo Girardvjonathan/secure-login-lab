@@ -72,33 +72,75 @@ router.post('/register', function (req, res) {
     req.checkBody('password', 'Password is required').notEmpty();
     req.checkBody('password2', 'Passwords do not match').equals(req.body.password);
 
-    var errors = req.validationErrors();
+    Config.getconfig(function (err, config) {
+        var requireOneNumber = config.passwordComplexity.requireOneNumber;
+        var requireOneSymbol = config.passwordComplexity.requireOneSymbol;
 
-    if (errors) {
-        res.render('register', {
-            errors: errors
-        });
-    } else {
-        var newUser = new User({
-            name: name,
-            email: email,
-            username: username,
-            password: password
-        });
+        var errors = req.validationErrors();
 
-        User.createUser(newUser, function (err, user) {
-            if (err) {
-                req.flash('error_msg', err.message);
-                return res.redirect('/users/register');
-                throw err;
-                // console.log(user);
-            } else {
-                req.flash('success_msg', 'You are registered and can now login');
-                res.redirect('/users/login');
+        if(password) {
+            errors = (errors) ? errors : [];
+
+            if(!hasLowerCase(password)) {
+                errors.push({ param : "password", msg : 'Password requires at least one lowercase char' });
             }
-        });
-    }
+
+            if(!hasUpperCase(password)) {
+                errors.push({ param : "password", msg : 'Password requires at least one uppercase char' });
+            }
+
+            if(requireOneNumber && !hasDigit(password)) {
+                errors.push({ param : "password", msg : 'Password requires one number minimum' });
+            }
+
+            if(requireOneSymbol && !hasSpecialChar(password)) {
+                errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
+            }
+        }
+
+        if (errors && errors.length > 0) {
+            res.render('register', {
+                errors: errors
+            });
+        } else {
+            var newUser = new User({
+                name: name,
+                email: email,
+                username: username,
+                password: password
+            });
+
+            User.createUser(newUser, function (err, user) {
+                if (err) {
+                    req.flash('error_msg', err.message);
+                    return res.redirect('/users/register');
+                    throw err;
+                    // console.log(user);
+                } else {
+                    req.flash('success_msg', 'You are registered and can now login');
+                    res.redirect('/users/login');
+                }
+            });
+        }
+    });
 });
+
+
+function hasLowerCase(str) {
+    return (/[a-z]/.test(str));
+}
+
+function hasUpperCase(str) {
+    return (/[A-Z]/.test(str));
+}
+
+function hasDigit(str) {
+    return (/[0-9]/.test(str));
+}
+
+function hasSpecialChar(str) {
+    return (/[#?!@$%^&*-]/.test(str));
+}
 
 passport.use(new LocalStrategy(
     function (username, password, done) {
