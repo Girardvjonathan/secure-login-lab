@@ -2,6 +2,12 @@ const ONE_HOUR = 3600000;
 const EMAIL_SENDER = "gti619.loginapp@gmail.com";
 const EMAIL_SENDER_PW = "gti619gti619"; // could put credentials in seperate file
 
+
+var accountSid = 'ACf5a14cf00e65aaa17fa0632b40f7994e'; // Your Account SID from www.twilio.com/console
+var authToken = '2a9ed694a3dea5963e30b4a7c3409f9b';   // Your Auth Token from www.twilio.com/console
+var twilio = require('twilio');
+var client = new twilio.RestClient(accountSid, authToken);
+
 var express = require('express');
 var router = express.Router();
 var passport = require('passport');
@@ -162,6 +168,7 @@ passport.use(new LocalStrategy(
         });
     }));
 
+
 passport.serializeUser(function (user, done) {
     done(null, user.id);
 });
@@ -198,19 +205,78 @@ router.post('/login', bouncer.block, function (req, res, next) {
                 return next(err);
             }
 
-            Log.addLog(new Log({
-                username: req.body.username,
-                ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
-                action: "Successful login",
-                date: Date.now()
-            }));
-
-            // res.redirect('/users/' + user.username);
             bouncer.reset(req);
-            return res.redirect('/');
+
+            if (user.twoFactorEnabled === true) {
+                User.setTwoFactor(user, function(token){
+                    client.messages.create({
+                        body: 'Your verification code is: ' + token,
+                        to: '+15143480896',  // Text this number
+                        from: '+14387938676 ' // From a valid Twilio number
+                    }, function(err, message) {
+                        req.user = user;
+                        return res.redirect('/users/two-factor-auth');
+                    });
+                    
+                });
+            } else {
+                Log.addLog(new Log({
+                    username: user.username,
+                    ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                    action: "Successful login",
+                    date: Date.now()
+                }));
+
+                // res.redirect('/users/' + user.username);
+                return res.redirect('/');                
+            }
+
         });
     })(req, res, next);
 });
+
+router.get('/two-factor-auth', function(req, res){
+    if (req.user && req.user.twoFactorToken)
+        res.render('two-factor-auth');
+    else
+        return res.redirect('/');            
+});
+
+router.post('/two-factor-auth', function(req, res) {
+    var twoFactorCode = req.body.twoFactorCode;
+    req.checkBody("twoFactorCode", "The code is required to login").notEmpty();
+
+    var errors = req.validationErrors();
+
+    if (errors) {
+        res.render('two-factor-auth', {
+            errors: errors
+        });
+    } else {
+        // console.log(req.user);
+        User.checkTwoFactor(req.user, twoFactorCode, function(validated){
+            if (validated) {
+                Log.addLog(new Log({
+                    username: req.user.username,
+                    ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                    action: "Successful login",
+                    date: Date.now()
+                }));
+
+                res.redirect('/');
+            } else {
+                Log.addLog(new Log({
+                    username: req.user.username,
+                    ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                    action: "Failed login (2-factor)",
+                    date: Date.now()
+                }));
+                req.flash('error_msg', 'The verification code you supplied is incorrect.');
+                res.redirect('/users/two-factor-auth');
+            }
+        });
+    }
+})
 
 router.get('/logout', function (req, res) {
     req.logout();
@@ -446,9 +512,51 @@ router.post('/add', ensureIsAdmin, function(req, res) {
     }
 });
 
+router.get('/tfa-setup', ensureAuthenticated, function(req, res) {
+        res.render('tfa-setup');
+    }
+);
+
+
+router.post('/tfa-setup', ensureAuthenticated, function(req, res) {
+        var enabled = req.body.twoFactorEnabled;
+        var phoneNumber = req.body.phoneNumber;
+
+        if (enabled === "true") {
+            enabled = true;
+            req.checkBody('phoneNumber', 'The phone number is required when enabling authentication.').notEmpty();
+        }
+
+        var errors = req.validationErrors();
+
+        if (errors) {
+            res.render('tfa-setup', {
+                errors: errors
+            });
+        } else {
+            User.findOne({
+                email : req.user.email
+            }, function(err, user) {
+                if (!user) {
+                    console.log("no user found with: " + destEmail);
+                    req.flash('error', 'No account with that email address exists.');
+                    return res.redirect('/users/forgot-password');
+                }
+                user.phoneNumber = phoneNumber+"";
+                user.twoFactorEnabled = enabled;
+
+                user.save();
+                req.flash('success_msg', 'Changes have been applied.');
+                res.redirect('/');
+            });
+        }
+    }
+);
+
+
 
 function ensureAuthenticated(req, res, next){
-    if(req.isAuthenticated()){
+    if(req.isAuthenticated() && !req.user.twoFactorToken){
         return next();
     } else {
         res.redirect('/users/login');
@@ -456,7 +564,7 @@ function ensureAuthenticated(req, res, next){
 }
 
 function ensureIsAdmin(req, res, next){
-    if(req.isAuthenticated() && req.user.role === "admin"){
+    if(req.isAuthenticated() && !req.user.twoFactorToken && req.user.role === "admin"){
         return next();
     } else {
         //req.flash('error_msg','You are not logged in');

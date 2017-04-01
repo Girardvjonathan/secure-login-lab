@@ -107,3 +107,7 @@ body, html {height: 100%;}
 section.main {
   margin-top: 20px;
 }
+
+.space-top {
+  margin-top: 40px;
+}

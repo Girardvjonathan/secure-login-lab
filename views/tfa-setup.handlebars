@@ -1,0 +1,29 @@
+<h2 class="page-header">Two factor authentication setup</h2>
+{{#if errors}}
+    {{#each errors}}
+        <div class="alert alert-danger">{{msg}}</div>
+    {{/each}}
+{{/if}}
+
+<form action="/users/tfa-setup" method="POST">
+
+	<div class="panel panel-default">
+		<div class="panel-heading">Two factor authentication</div>
+		<div class="panel-body">
+
+			<div class="form-group">
+				<label>
+					<input type="checkbox" name="twoFactorEnabled" {{#if user.twoFactorEnabled}}checked{{/if}} value='true' /> Enable two-factor authentication
+				</label>
+			</div>
+
+			<div class="form-group">
+				<label for="phone-number">Phone number</label>
+				<input class="form-control" type="number" value="{{user.phoneNumber}}" name="phoneNumber" id="phone-number" placeholder="15146667777" />
+				<small class="form-text text-muted">To enable two-factor authentication, you need to enter your phone number.</small>
+			</div>
+		</div>
+	</div>
+
+	<input class="btn btn-primary btn-lg" type="submit" value="Apply changes" />
+</form>

@@ -41,6 +41,7 @@
     "passport": "*",
     "passport-http": "*",
     "passport-local": "*",
-    "ssl-root-cas": "^1.2.3"
+    "ssl-root-cas": "^1.2.3",
+    "twilio": "*"
   }
 }
