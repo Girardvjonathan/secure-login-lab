@@ -190,48 +190,66 @@ router.post('/login', bouncer.block, function (req, res, next) {
         if (err) {
             return next(err);
         }
-        if (!user) {
-            req.flash('error_msg', 'Wrong credential');
-            Log.addLog(new Log({
-                username: req.body.username,
-                ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
-                action: "Failed login",
-                date: Date.now()
-            }));
-            return res.redirect('/users/login');
-        }
-        req.logIn(user, function (err) {
-            if (err) {
-                return next(err);
-            }
-
-            bouncer.reset(req);
-
-            if (user.twoFactorEnabled === true) {
-                User.setTwoFactor(user, function(token){
-                    client.messages.create({
-                        body: 'Your verification code is: ' + token,
-                        to: '+15143480896',  // Text this number
-                        from: '+14387938676 ' // From a valid Twilio number
-                    }, function(err, message) {
-                        req.user = user;
-                        return res.redirect('/users/two-factor-auth');
-                    });
-                    
+        if (!user || user.locked) {
+            User.incrementFailedLogins(req.body.username, function(nbFailedLogins){
+                Config.getconfig(function (err, config) {
+                    if (nbFailedLogins >= config.nbFailsPerAttempt * config.maxNbAttempts) {
+                        User.lock(req.body.username, function(){
+                            var errors = [];
+                            errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house.' });
+                            return res.render('login', {
+                                errors: errors
+                            });
+                        });
+                    } else {
+                        req.flash('error_msg', 'Wrong credentials ');
+                        Log.addLog(new Log({
+                            username: req.body.username,
+                            ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                            action: "Failed login",
+                            date: Date.now()
+                        }));
+                        return res.redirect('/users/login');
+                    }
                 });
-            } else {
-                Log.addLog(new Log({
-                    username: user.username,
-                    ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
-                    action: "Successful login",
-                    date: Date.now()
-                }));
+            });
+        } else {
+            req.logIn(user, function (err) {
+                if (err) {
+                    return next(err);
+                }
 
-                // res.redirect('/users/' + user.username);
-                return res.redirect('/');                
-            }
+                bouncer.reset(req);
 
-        });
+                if (user.twoFactorEnabled === true) {
+                    User.setTwoFactor(user, function(token){
+                        client.messages.create({
+                            body: 'Your verification code is: ' + token,
+                            to: '+1' + user.phoneNumber,  // Text this number
+                            from: '+14387938676 ' // From a valid Twilio number
+                        }, function(err, message) {
+                            req.user = user;
+                            return res.redirect('/users/two-factor-auth');
+                        });
+                        
+                    });
+                } else {
+                    User.resetFailedLogins(user, function(){
+                        Log.addLog(new Log({
+                            username: user.username,
+                            ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                            action: "Successful login",
+                            date: Date.now()
+                        }));
+
+                        // res.redirect('/users/' + user.username);
+                        return res.redirect('/');    
+                    })
+             
+                }
+
+            });
+        }
     })(req, res, next);
 });
 
@@ -256,14 +274,16 @@ router.post('/two-factor-auth', function(req, res) {
         // console.log(req.user);
         User.checkTwoFactor(req.user, twoFactorCode, function(validated){
             if (validated) {
-                Log.addLog(new Log({
-                    username: req.user.username,
-                    ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
-                    action: "Successful login",
-                    date: Date.now()
-                }));
+                User.resetFailedLogins(req.user, function(){
+                    Log.addLog(new Log({
+                        username: req.user.username,
+                        ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                        action: "Successful login",
+                        date: Date.now()
+                    }));
 
-                res.redirect('/');
+                    res.redirect('/');
+                });
             } else {
                 Log.addLog(new Log({
                     username: req.user.username,
@@ -519,39 +539,66 @@ router.get('/tfa-setup', ensureAuthenticated, function(req, res) {
 
 
 router.post('/tfa-setup', ensureAuthenticated, function(req, res) {
-        var enabled = req.body.twoFactorEnabled;
-        var phoneNumber = req.body.phoneNumber;
+    var enabled = req.body.twoFactorEnabled;
+    var phoneNumber = req.body.phoneNumber;
 
-        if (enabled === "true") {
-            enabled = true;
-            req.checkBody('phoneNumber', 'The phone number is required when enabling authentication.').notEmpty();
-        }
-
-        var errors = req.validationErrors();
-
-        if (errors) {
-            res.render('tfa-setup', {
-                errors: errors
-            });
-        } else {
-            User.findOne({
-                email : req.user.email
-            }, function(err, user) {
-                if (!user) {
-                    console.log("no user found with: " + destEmail);
-                    req.flash('error', 'No account with that email address exists.');
-                    return res.redirect('/users/forgot-password');
-                }
-                user.phoneNumber = phoneNumber+"";
-                user.twoFactorEnabled = enabled;
-
-                user.save();
-                req.flash('success_msg', 'Changes have been applied.');
-                res.redirect('/');
-            });
-        }
+    if (enabled === "true") {
+        enabled = true;
+        req.checkBody('phoneNumber', 'The phone number is required when enabling two-factor authentication.').notEmpty();
     }
-);
+
+    var errors = req.validationErrors();
+
+    if (errors) {
+        res.render('tfa-setup', {
+            errors: errors
+        });
+    } else {
+        User.findOne({
+            email : req.user.email
+        }, function(err, user) {
+            if (!user) {
+                console.log("no user found with: " + destEmail);
+                req.flash('error', 'No account with that email address exists.');
+                return res.redirect('/users/forgot-password');
+            }
+            user.phoneNumber = phoneNumber+"";
+            user.twoFactorEnabled = enabled;
+
+            user.save();
+            req.flash('success_msg', 'Changes have been applied.');
+            res.redirect('/');
+        });
+    }
+});
+
+router.get('/home-officers', ensureAuthenticated, function(req, res){
+    if (req.user.role === "admin" || req.user.role == "Préposé aux clients résidentiels") {
+        User.getAllBy('role', 'Préposé aux clients résidentiels', function(err, users){
+            res.render('list-users', {
+                users: users,
+                role: "Préposé aux clients résidentiels"
+            });
+        });
+    } else {
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
+    }
+});
+
+router.get('/business-officers', ensureAuthenticated, function(req, res){
+    if (req.user.role === "admin" || req.user.role == "Préposé aux clients d'affaires") {
+        User.getAllBy('role', 'Préposé aux clients d\'affaires', function(err, users){
+            res.render('list-users', {
+                users: users,
+                role: "Préposé aux clients d'affaires"
+            });
+        });
+    } else {
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
+    }
+});
 
 
 
@@ -568,7 +615,8 @@ function ensureIsAdmin(req, res, next){
         return next();
     } else {
         //req.flash('error_msg','You are not logged in');
-        res.redirect('/users/login');
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
     }
 }
 

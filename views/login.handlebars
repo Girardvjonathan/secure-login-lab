@@ -1,4 +1,10 @@
 <h2 class="page-header">Account Login</h2>
+{{#if errors}}
+    {{#each errors}}
+        <div class="alert alert-danger {{#if shake}}shake-constant shake-constant--hover shake-vertical{{/if}}">{{msg}}</div>
+    {{/each}}
+{{/if}}
+
 <form method="post" action="/users/login">
   <div class="form-group">
     <label>Username</label>
