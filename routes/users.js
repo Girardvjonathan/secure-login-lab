@@ -18,8 +18,8 @@ let Log = require('../models/logs.js');
 var async = require('async');
 var crypto = require('crypto');
 var nodemailer = require("nodemailer");
-var smtpTransport = require('nodemailer-smtp-transport');
-var smtpTransport = nodemailer.createTransport(smtpTransport({
+var smtpTransport = require('nodemailer-smtp-transport'); //TODO ?????
+smtpTransport = nodemailer.createTransport(smtpTransport({
     service : "gmail",
     auth : {
         user : EMAIL_SENDER,
@@ -33,7 +33,7 @@ var isPasswordResettable = function(callback) {
     return Config.getconfig(function (err, config) {
         callback(config.allowPasswordReset);
     });
-}
+};
 
 
 // Register
@@ -399,6 +399,9 @@ router.post('/reset-password', function(req, res) {
             u.resetPasswordExpires = undefined;
             User.changePassword(u, password, function (err, user) {
                 if (err) throw err;
+                else if(!user){
+                //    TODO on a retourner false parce que le password a deja ete utiliser dans le passer handle that et verifier la condition
+                }
                 else{
                     Log.addLog(new Log({
                         username: user.username,
@@ -448,6 +451,7 @@ router.post('/modify-password', ensureAuthenticated, function(req, res) {
 
         function modifyPassword(){
             User.changePassword(req.user, newPassword, function (err, user) {
+                //TODO verifier si on recoit false donc que le password a deja ete utiliser avant
                 if (err) throw err;
                 else{
                     Log.addLog(new Log({
@@ -647,7 +651,7 @@ function getResetPasswordEmailWaterfall(destEmail, mailOptions, req, res){
             },
             function(token, user, done) {
                 var smtpTransport = require('nodemailer-smtp-transport');
-                var smtpTransport = nodemailer.createTransport(smtpTransport({
+                smtpTransport = nodemailer.createTransport(smtpTransport({
                     service : "gmail",
                     auth : {
                         user : EMAIL_SENDER,
