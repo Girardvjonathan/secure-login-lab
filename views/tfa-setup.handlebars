@@ -21,7 +21,10 @@
 
 			<div class="form-group">
 				<label for="phone-number">Phone number</label>
-				<input class="form-control" type="number" value="{{user.phoneNumber}}" name="phoneNumber" id="phone-number" placeholder="Example: 15146667777" />
+				<div class="input-group">
+					<div class="input-group-addon">+1</div>
+					<input class="form-control" type="number" value="{{user.phoneNumber}}" name="phoneNumber" id="phone-number" placeholder="Example: 5146667777" />
+				</div>
 				<small class="form-text text-muted">To enable two-factor authentication, you need to enter your phone number.</small>
 			</div>
 		</div>

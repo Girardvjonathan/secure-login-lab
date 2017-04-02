@@ -225,7 +225,7 @@ router.post('/login', bouncer.block, function (req, res, next) {
                     User.setTwoFactor(user, function(token){
                         client.messages.create({
                             body: 'Your verification code is: ' + token,
-                            to: '+15143480896',  // Text this number
+                            to: '+1' + user.phoneNumber,  // Text this number
                             from: '+14387938676 ' // From a valid Twilio number
                         }, function(err, message) {
                             req.user = user;
