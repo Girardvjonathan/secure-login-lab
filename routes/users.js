@@ -1,12 +1,14 @@
 const ONE_HOUR = 3600000;
-const EMAIL_SENDER = "gti619.loginapp@gmail.com";
-const EMAIL_SENDER_PW = "gti619gti619"; // could put credentials in seperate file
 
+const EMAIL_SENDER = process.env.EMAIL_ADDR;
+const EMAIL_SENDER_PW = process.env.EMAIL_PASS; // could put credentials in seperate file
+const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER;
 
-var accountSid = 'ACf5a14cf00e65aaa17fa0632b40f7994e'; // Your Account SID from www.twilio.com/console
-var authToken = '2a9ed694a3dea5963e30b4a7c3409f9b';   // Your Auth Token from www.twilio.com/console
+const TWILIOACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID; // Your Account SID from www.twilio.com/console
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;   // Your Auth Token from www.twilio.com/console
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 var twilio = require('twilio');
-var client = new twilio.RestClient(accountSid, authToken);
+var client = new twilio.RestClient(TWILIOACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 var express = require('express');
 var router = express.Router();
@@ -190,6 +192,7 @@ router.post('/login', bouncer.block, function (req, res, next) {
                         errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house.' });
                         return res.render('login', {
                             errors: errors,
+                            passwordResettable: req.appConfig.allowPasswordReset,
                             troll: true
                         });
                     });
@@ -218,7 +221,7 @@ router.post('/login', bouncer.block, function (req, res, next) {
                         client.messages.create({
                             body: 'Your verification code is: ' + token,
                             to: '+1' + user.phoneNumber,  // Text this number
-                            from: '+14387938676 ' // From a valid Twilio number
+                            from: TWILIO_PHONE_NUMBER // From a valid Twilio number
                         }, function(err, message) {
                             req.user = user;
                             return res.redirect('/users/two-factor-auth');
@@ -644,7 +647,7 @@ function getResetPasswordEmailWaterfall(destEmail, mailOptions, req, res){
             function(token, user, done) {
                 var smtpTransport = require('nodemailer-smtp-transport');
                 smtpTransport = nodemailer.createTransport(smtpTransport({
-                    service : "gmail",
+                    service : EMAIL_PROVIDER,
                     auth : {
                         user : EMAIL_SENDER,
                         pass : EMAIL_SENDER_PW,

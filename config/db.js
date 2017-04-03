@@ -4,9 +4,9 @@
 module.exports = {
     connectDB: function(callback) {
         "use strict";
-        let username = 'gti619';
-        let password = 'gti619';
-        let mongodbUri = 'mongodb://' + username + ':' + password + '@ds147080.mlab.com:47080/gti619';
+        let username = process.env.DB_USER;
+        let password = process.env.DB_PASS;
+        let mongodbUri = 'mongodb://' + username + ':' + password + "@" + process.env.DB_HOST;
         // let mongodbUri = "mongodb://localhost/new";
         // for local ^
 
@@ -21,3 +21,5 @@ module.exports = {
         });
     }
 };
+
+

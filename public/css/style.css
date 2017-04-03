@@ -127,6 +127,7 @@ h3.logo a:hover{
   height: auto;
   bottom: 0px;
   right: 350px;
+  pointer-events: none;
 }
 
 .trollolol {
