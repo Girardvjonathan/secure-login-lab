@@ -13,6 +13,7 @@ var mongoose = require('mongoose');
 require('ssl-root-cas').inject();
 
 const SESSION_TIME_MINUTES = 5;
+var Config = require('./models/config');
 
 //CSRF
 // var csrf = require('csurf');
@@ -96,6 +97,15 @@ app.use(function (req, res, next) {
 
 //TODO check that
 // app.use(csrf());
+
+
+// Config hook
+app.use(function(req, res, next){
+  Config.getconfig(function (err, config) {
+    req.appConfig = config;
+    next();
+  });
+});
 
 
 require('./routes/routes')(app); // configure our routes

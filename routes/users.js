@@ -12,7 +12,6 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
-let Config = require('../models/config');
 let Log = require('../models/logs.js');
 
 var async = require('async');
@@ -29,12 +28,6 @@ smtpTransport = nodemailer.createTransport(smtpTransport({
 
 var User = require('../models/users');
 var bouncer = require("express-bouncer")(2000, 900000);
-var isPasswordResettable = function(callback) {
-    return Config.getconfig(function (err, config) {
-        callback(config.allowPasswordReset);
-    });
-};
-
 
 // Register
 router.get('/register', function (req, res) {
@@ -43,23 +36,21 @@ router.get('/register', function (req, res) {
 
 // Login
 router.get('/login', function (req, res) {
-    isPasswordResettable(function(passwordResettable){
-        res.render('login', {
-            passwordResettable: passwordResettable
-        });
+    res.render('login', {
+        passwordResettable: req.appConfig.allowPasswordReset
     });
 });
 
 // Forgot password
 router.get('/forgot-password', function (req, res) {
-    isPasswordResettable(function(passwordResettable){
-        if (passwordResettable){
-            res.render('forgot-password');
-        } else {
-            req.flash('error_msg', 'Invalid request');
-            return res.redirect('/users/login/');
-        }
-    });
+
+    if (req.appConfig.allowPasswordReset){
+        res.render('forgot-password');
+    } else {
+        req.flash('error_msg', 'Invalid request');
+        return res.redirect('/users/login/');
+    }
+
 });
 
 // Register User
@@ -78,57 +69,57 @@ router.post('/register', function (req, res) {
     req.checkBody('password', 'Password is required').notEmpty();
     req.checkBody('password2', 'Passwords do not match').equals(req.body.password);
 
-    Config.getconfig(function (err, config) {
-        var requireOneNumber = config.passwordComplexity.requireOneNumber;
-        var requireOneSymbol = config.passwordComplexity.requireOneSymbol;
 
-        var errors = req.validationErrors();
+    var requireOneNumber = req.appConfig.passwordComplexity.requireOneNumber;
+    var requireOneSymbol = req.appConfig.passwordComplexity.requireOneSymbol;
 
-        if(password) {
-            errors = (errors) ? errors : [];
 
-            if(!hasLowerCase(password)) {
-                errors.push({ param : "password", msg : 'Password requires at least one lowercase char' });
-            }
+    var errors = req.validationErrors();
 
-            if(!hasUpperCase(password)) {
-                errors.push({ param : "password", msg : 'Password requires at least one uppercase char' });
-            }
+    if(password) {
+        errors = (errors) ? errors : [];
 
-            if(requireOneNumber && !hasDigit(password)) {
-                errors.push({ param : "password", msg : 'Password requires one number minimum' });
-            }
-
-            if(requireOneSymbol && !hasSpecialChar(password)) {
-                errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
-            }
+        if(!hasLowerCase(password)) {
+            errors.push({ param : "password", msg : 'Password requires at least one lowercase char' });
         }
 
-        if (errors && errors.length > 0) {
-            res.render('register', {
-                errors: errors
-            });
-        } else {
-            var newUser = new User({
-                name: name,
-                email: email,
-                username: username,
-                password: password
-            });
-
-            User.createUser(newUser, function (err, user) {
-                if (err) {
-                    req.flash('error_msg', err.message);
-                    return res.redirect('/users/register');
-                    throw err;
-                    // console.log(user);
-                } else {
-                    req.flash('success_msg', 'You are registered and can now login');
-                    res.redirect('/users/login');
-                }
-            });
+        if(!hasUpperCase(password)) {
+            errors.push({ param : "password", msg : 'Password requires at least one uppercase char' });
         }
-    });
+
+        if(requireOneNumber && !hasDigit(password)) {
+            errors.push({ param : "password", msg : 'Password requires one number minimum' });
+        }
+
+        if(requireOneSymbol && !hasSpecialChar(password)) {
+            errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
+        }
+    }
+
+    if (errors && errors.length > 0) {
+        res.render('register', {
+            errors: errors
+        });
+    } else {
+        var newUser = new User({
+            name: name,
+            email: email,
+            username: username,
+            password: password
+        });
+
+        User.createUser(newUser, function (err, user) {
+            if (err) {
+                req.flash('error_msg', err.message);
+                return res.redirect('/users/register');
+                throw err;
+                // console.log(user);
+            } else {
+                req.flash('success_msg', 'You are registered and can now login');
+                res.redirect('/users/login');
+            }
+        });
+    }
 });
 
 
@@ -192,26 +183,26 @@ router.post('/login', bouncer.block, function (req, res, next) {
         }
         if (!user || user.locked) {
             User.incrementFailedLogins(req.body.username, function(nbFailedLogins){
-                Config.getconfig(function (err, config) {
-                    if (nbFailedLogins >= config.nbFailsPerAttempt * config.maxNbAttempts) {
-                        User.lock(req.body.username, function(){
-                            var errors = [];
-                            errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house.' });
-                            return res.render('login', {
-                                errors: errors
-                            });
+
+                if (nbFailedLogins >= req.appConfig.nbFailsPerAttempt * req.appConfig.maxNbAttempts) {
+                    User.lock(req.body.username, function(){
+                        var errors = [];
+                        errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house.' });
+                        return res.render('login', {
+                            errors: errors
                         });
-                    } else {
-                        req.flash('error_msg', 'Wrong credentials ');
-                        Log.addLog(new Log({
-                            username: req.body.username,
-                            ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
-                            action: "Failed login",
-                            date: Date.now()
-                        }));
-                        return res.redirect('/users/login');
-                    }
-                });
+                    });
+                } else {
+                    req.flash('error_msg', 'Wrong credentials ');
+                    Log.addLog(new Log({
+                        username: req.body.username,
+                        ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                        action: "Failed login",
+                        date: Date.now()
+                    }));
+                    return res.redirect('/users/login');
+                }
+
             });
         } else {
             req.logIn(user, function (err) {
@@ -308,29 +299,26 @@ router.get('/logout', function (req, res) {
 
 
 router.post('/forgot-password', function(req, res, next) {
-    isPasswordResettable(function(passwordResettable){
-        if (passwordResettable) {
-            var email = req.body.email;
-            var mailOptions = {
-                to : email,
-                from : EMAIL_SENDER,
-                subject : 'GTI619 - LoginApp - Password reset',
-                text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
-                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                    'http://' + req.headers.host + '/users/reset-password/{{token}}&' + email + '\n\n' +
-                    'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-            };
-            async.waterfall(getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
-                if (err) return next(err);
-                req.flash('success_msg', 'The instructions to reset your password have been sent to your email address.');
-                res.redirect('/users/login');
-            });
-        } else {
-            req.flash('error_msg', 'Invalid request');
-            return res.redirect('/users/login/');
-        }
-    });
-
+    if (req.appConfig.allowPasswordReset) {
+        var email = req.body.email;
+        var mailOptions = {
+            to : email,
+            from : EMAIL_SENDER,
+            subject : 'GTI619 - LoginApp - Password reset',
+            text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
+                'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                'http://' + req.headers.host + '/users/reset-password/{{token}}&' + email + '\n\n' +
+                'If you did not request this, please ignore this email and your password will remain unchanged.\n'
+        };
+        async.waterfall(getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
+            if (err) return next(err);
+            req.flash('success_msg', 'The instructions to reset your password have been sent to your email address.');
+            res.redirect('/users/login');
+        });
+    } else {
+        req.flash('error_msg', 'Invalid request');
+        return res.redirect('/users/login/');
+    }
 });
 
 
@@ -397,12 +385,14 @@ router.post('/reset-password', function(req, res) {
 
             u.resetPasswordToken = undefined;
             u.resetPasswordExpires = undefined;
-            User.changePassword(u, password, function (err, user) {
-                if (err) throw err;
-                else if(!user){
-                //    TODO on a retourner false parce que le password a deja ete utiliser dans le passer handle that et verifier la condition
-                }
-                else{
+            User.changePassword(u, password, req.appConfig.password_history_length, function (err, user) {
+                if (err){
+                    return res.render('reset-password', {
+                        errors: [{msg: err.message}],
+                        token: token,
+                        email: email
+                    });
+                } else {
                     Log.addLog(new Log({
                         username: user.username,
                         ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
@@ -450,10 +440,11 @@ router.post('/modify-password', ensureAuthenticated, function(req, res) {
             .catch(err => console.log(err));
 
         function modifyPassword(){
-            User.changePassword(req.user, newPassword, function (err, user) {
-                //TODO verifier si on recoit false donc que le password a deja ete utiliser avant
-                if (err) throw err;
-                else{
+            User.changePassword(req.user, newPassword, req.appConfig.password_history_length, function (err, user) {
+                if (err) {
+                    req.flash('error_msg', err.message);
+                    return res.redirect('/users/modify-password');
+                } else {
                     Log.addLog(new Log({
                         username: user.username,
                         ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,

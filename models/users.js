@@ -80,20 +80,29 @@ module.exports.authenticate = function (plainText, user) {
     });
 };
 
-module.exports.changePassword = function (user, newPassword, callback) {
+module.exports.changePassword = function (user, newPassword, configPasswordHistoryLength, callback) {
     // user.salt = makeSalt();
     Hash.getCurrent(function (err, hash) {
+        let usedPassword = false;
         user.password = encryptPassword(newPassword, hash.name, user.salt);
         user.hashId = hash.id;
+
         for (let i = 0; i < user.password_history.length; i++) {
             //TODO logique in case hash is different or we dont handle it
             if (user.password == user.password_history[i].password) {
-                return false;
+                usedPassword = true;
+                callback(new Error("For security purposes, you cannot reuse a password that you have recently used."));
+                break;
             }
         }
-        user.password_history.push({password: user.password, hashId: user.hashId});
-        user.password_history.pop();
-        user.save(callback);
+
+        if (!usedPassword){
+            if (user.password_history.length){
+                user.password_history.unshift({password: user.password, hashId: user.hashId});
+            }
+            user.password_history.length = (user.password_history.length > configPasswordHistoryLength) ? configPasswordHistoryLength : user.password_history.length;
+            user.save(callback);
+        }
     });
 };
 
