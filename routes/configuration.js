@@ -35,6 +35,8 @@ router.post('/apply', ensureIsAdmin, function(req, res){
         var allowPasswordReset = req.body.allowPasswordReset;
         var requireOneNumber = req.body.requireOneNumber;
         var requireOneSymbol = req.body.requireOneSymbol;
+        var nbFailsPerAttempt = req.body.nbFailsPerAttempt;
+        var password_history_length = req.body.password_history_length;
 		(allowPasswordReset == 'on')? allowPasswordReset=true: allowPasswordReset=false;
 		(requireOneNumber == 'on')? requireOneNumber=true: requireOneNumber=false;
 		(requireOneSymbol == 'on')? requireOneSymbol=true: requireOneSymbol=false;
@@ -42,6 +44,10 @@ router.post('/apply', ensureIsAdmin, function(req, res){
         // Validation
         req.checkBody('maxNbAttempts', 'maxNbAttempts is required').notEmpty();
         req.checkBody('maxNbAttempts', 'maxNbAttempts must be a number').isInt();
+        req.checkBody('nbFailsPerAttempt', 'nbFailsPerAttempt is required').notEmpty();
+        req.checkBody('nbFailsPerAttempt', 'nbFailsPerAttempt must be a number').isInt();
+        req.checkBody('password_history_length', 'password_history_length is required').notEmpty();
+        req.checkBody('password_history_length', 'password_history_length must be a number').isInt();
 
         var errors = req.validationErrors();
 
@@ -51,9 +57,11 @@ router.post('/apply', ensureIsAdmin, function(req, res){
             });
         } else {
             config.maxNbAttempts = maxNbAttempts;
+            config.nbFailsPerAttempt = nbFailsPerAttempt;
             config.allowPasswordReset = allowPasswordReset;
             config.passwordComplexity.requireOneNumber = requireOneNumber;
             config.passwordComplexity.requireOneSymbol = requireOneSymbol;
+            config.password_history_length = password_history_length;
             Config.changeConfig(config);
         }
         req.flash('success_msg', 'Changes have been applied');

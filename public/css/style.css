@@ -120,3 +120,20 @@ h3.logo a {
 h3.logo a:hover{
   color: black;
 }
+
+.trollolol, .pulp {
+  position: fixed;
+  width: 200px;
+  height: auto;
+  bottom: 0px;
+  right: 350px;
+}
+
+.trollolol {
+  filter: blur(1px);
+}
+
+.pulp {
+  right: 420px;
+  width: 300px;
+}
