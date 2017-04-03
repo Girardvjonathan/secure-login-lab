@@ -137,3 +137,7 @@ h3.logo a:hover{
   right: 420px;
   width: 300px;
 }
+
+.action-label {
+  float: right;
+}

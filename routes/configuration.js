@@ -14,6 +14,15 @@ handlebars.registerHelper('formatTime', function (date, format) {
 
 router.get('/logs', ensureIsAdmin, function(req, res){
     Log.getLogs(function(err, logs) {
+        logs.map(function(log){
+            if (log.action === "Successful login")
+                log.tag = "success";
+            else if (log.action === "Failed login" || log.action === "Failed login (2-factor)")
+                log.tag = "danger"
+            else
+                log.tag = "primary"
+            return log;
+        });
         res.render('logs', {
             logs: logs
         });
