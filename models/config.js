@@ -4,10 +4,10 @@
 /**
  * Created by john on 3/28/17.
  */
-var mongoose = require('mongoose');
+let mongoose = require('mongoose');
 
 // User Schema
-var configSchema = mongoose.Schema({
+let configSchema = mongoose.Schema({
     compte: {
         type: Number,
         index: true,
@@ -35,20 +35,24 @@ var configSchema = mongoose.Schema({
             default: false
         }
     },
+    password_history_length: {
+        type: Number,
+        default: 3
+    }
 });
 
-var config = module.exports = mongoose.model('config', configSchema);
+let config = module.exports = mongoose.model('config', configSchema);
 
 module.exports.addconfig = function (newconfig, callback) {
     newconfig.save(callback);
-}
+};
 
 module.exports.getconfig = function (callback) {
-    var query = {compte: 1};
+    let query = {compte: 1};
     config.findOne(query, callback);
-}
+};
 
 module.exports.changeConfig = function (config, callback) {
     config.save(callback);
-}
+};
 

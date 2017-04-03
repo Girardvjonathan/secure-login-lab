@@ -2,6 +2,7 @@ let mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 const crypto = require('crypto');
 let Hash = require('./hash');
+let Config = require('./config');
 
 // User Schema
 let UserSchema = mongoose.Schema({
@@ -10,16 +11,12 @@ let UserSchema = mongoose.Schema({
         index: true,
         unique: true
     },
-    password: {
-        type: String
-    },
+    password: String,
     email: {
         type: String,
         unique: true
     },
-    name: {
-        type: String
-    },
+    name: String,
     role: {
         type: String,
         default: "Préposé aux clients résidentiels"
@@ -39,13 +36,17 @@ let UserSchema = mongoose.Schema({
     salt: String,
     hashId: Number,
     resetPasswordToken: String,
-    resetPasswordExpires: Date
+    resetPasswordExpires: Date,
+    password_history: [{
+        password: String,
+        hashId: Number
+    }]
 });
 
 let User = module.exports = mongoose.model('User', UserSchema);
 
 module.exports.createUser = function (newUser, callback) {
-   User.exists(newUser, function(exists) {
+    User.exists(newUser, function (exists) {
         if (exists) {
             callback({message: 'This user already exists.'});
         } else {
@@ -53,71 +54,93 @@ module.exports.createUser = function (newUser, callback) {
             Hash.getCurrent(function (err, hash) {
                 newUser.password = encryptPassword(newUser.password, hash.name, newUser.salt);
                 newUser.hashId = hash.id;
-                newUser.save(callback);
+                Config.getconfig(function (err, config) {
+                    // Remplir la liste fifo avec le length de la config
+                    for (let i = 0; i < config.password_history_length; i++) {
+                        newUser.password_history.push({password: newUser.password, hashId: newUser.hashId})
+                    }
+                    newUser.save(callback);
+                });
             });
         }
     })
-
 };
 
 // Adapted from https://github.com/madhums/node-express-mongoose-demo/blob/master/app/models/user.js
-
 module.exports.authenticate = function (plainText, user) {
-        return new Promise((resolve, reject) => {
-            Hash.getHashById(user.hashId,function (err, hash) {
-                if(err) reject(err);
-                let hashed_password = encryptPassword(plainText, hash.name, user.salt);
-                resolve({ isMatch: hashed_password === user.password
-                , user: user });
+    return new Promise((resolve, reject) => {
+        Hash.getHashById(user.hashId, function (err, hash) {
+            if (err) reject(err);
+            let hashed_password = encryptPassword(plainText, hash.name, user.salt);
+            resolve({
+                isMatch: hashed_password === user.password
+                , user: user
             });
+        });
     });
-    //TODO verify
 };
 
-module.exports.changePassword = function(user, newPassword, callback) {
+module.exports.changePassword = function (user, newPassword, configPasswordHistoryLength, callback) {
     // user.salt = makeSalt();
     Hash.getCurrent(function (err, hash) {
+        let usedPassword = false;
         user.password = encryptPassword(newPassword, hash.name, user.salt);
         user.hashId = hash.id;
-        user.save(callback);
-    });
-}
 
-module.exports.exists = function(u, callback){
-    User.find({$or:[ {'username': u.username}, {'email': u.email}]} , function(err,user) {
+        for (let i = 0; i < user.password_history.length; i++) {
+            //TODO logique in case hash is different or we dont handle it
+            if (user.password == user.password_history[i].password) {
+                usedPassword = true;
+                callback(new Error("For security purposes, you cannot reuse a password that you have recently used."));
+                break;
+            }
+        }
+
+        if (!usedPassword){
+            if (user.password_history.length){
+                user.password_history.unshift({password: user.password, hashId: user.hashId});
+            }
+            user.password_history.length = (user.password_history.length > configPasswordHistoryLength) ? configPasswordHistoryLength : user.password_history.length;
+            user.save(callback);
+        }
+    });
+};
+
+module.exports.exists = function (u, callback) {
+    User.find({$or: [{'username': u.username}, {'email': u.email}]}, function (err, user) {
         if (err || user.length > 0) {     // user does not come back null, so check length
             callback(1);
             return;
-        } 
+        }
         //no user
         callback(0);
     });
-}
+};
 
 
-module.exports.setTwoFactor = function(user, callback) {
+module.exports.setTwoFactor = function (user, callback) {
     user.twoFactorToken = Math.floor(1000 + Math.random() * 9000);
     user.save(callback(user.twoFactorToken));
-}
+};
 
-module.exports.checkTwoFactor = function(user, code, callback) {
+module.exports.checkTwoFactor = function (user, code, callback) {
     if (code == user.twoFactorToken) {
         user.twoFactorToken = undefined;
         user.save(callback(true));
     } else {
         callback(false);
     }
-}
+};
 
-module.exports.lock = function(username, callback) {
-    User.getUserByUsername(username, function(err, user){
+module.exports.lock = function (username, callback) {
+    User.getUserByUsername(username, function (err, user) {
         user.locked = true;
         user.save(callback);
     });
-}
+};
 
-module.exports.incrementFailedLogins = function(username, callback) {
-    User.getUserByUsername(username, function(err, user){
+module.exports.incrementFailedLogins = function (username, callback) {
+    User.getUserByUsername(username, function (err, user) {
         if (user) {
             user.nbFailedLogins++;
             user.save(callback(user.nbFailedLogins));
@@ -125,12 +148,12 @@ module.exports.incrementFailedLogins = function(username, callback) {
             callback(0);
         }
     });
-}
+};
 
-module.exports.resetFailedLogins = function(user, callback) {
+module.exports.resetFailedLogins = function (user, callback) {
     user.nbFailedLogins = 0;
     user.save(callback);
-}
+};
 
 let makeSalt = function () {
     return Math.round((new Date().valueOf() * Math.random())) + '';
