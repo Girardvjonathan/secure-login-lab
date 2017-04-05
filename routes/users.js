@@ -1,25 +1,26 @@
 const ONE_HOUR = 3600000;
-const EMAIL_SENDER = "gti619.loginapp@gmail.com";
-const EMAIL_SENDER_PW = "gti619gti619"; // could put credentials in seperate file
 
+const EMAIL_SENDER = process.env.EMAIL_ADDR;
+const EMAIL_SENDER_PW = process.env.EMAIL_PASS; // could put credentials in seperate file
+const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER;
 
-var accountSid = 'ACf5a14cf00e65aaa17fa0632b40f7994e'; // Your Account SID from www.twilio.com/console
-var authToken = '2a9ed694a3dea5963e30b4a7c3409f9b';   // Your Auth Token from www.twilio.com/console
+const TWILIOACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID; // Your Account SID from www.twilio.com/console
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;   // Your Auth Token from www.twilio.com/console
+const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 var twilio = require('twilio');
-var client = new twilio.RestClient(accountSid, authToken);
+var client = new twilio.RestClient(TWILIOACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
 var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
-let Config = require('../models/config');
 let Log = require('../models/logs.js');
 
 var async = require('async');
 var crypto = require('crypto');
 var nodemailer = require("nodemailer");
-var smtpTransport = require('nodemailer-smtp-transport');
-var smtpTransport = nodemailer.createTransport(smtpTransport({
+var smtpTransport = require('nodemailer-smtp-transport'); //TODO ?????
+smtpTransport = nodemailer.createTransport(smtpTransport({
     service : "gmail",
     auth : {
         user : EMAIL_SENDER,
@@ -28,13 +29,7 @@ var smtpTransport = nodemailer.createTransport(smtpTransport({
 }));
 
 var User = require('../models/users');
-var bouncer = require("express-bouncer")(2000, 900000);
-var isPasswordResettable = function(callback) {
-    return Config.getconfig(function (err, config) {
-        callback(config.allowPasswordReset);
-    });
-}
-
+var bouncer = require("express-bouncer")(2000, 900000, 200);
 
 // Register
 router.get('/register', function (req, res) {
@@ -43,23 +38,21 @@ router.get('/register', function (req, res) {
 
 // Login
 router.get('/login', function (req, res) {
-    isPasswordResettable(function(passwordResettable){
-        res.render('login', {
-            passwordResettable: passwordResettable
-        });
+    res.render('login', {
+        passwordResettable: req.appConfig.allowPasswordReset
     });
 });
 
 // Forgot password
 router.get('/forgot-password', function (req, res) {
-    isPasswordResettable(function(passwordResettable){
-        if (passwordResettable){
-            res.render('forgot-password');
-        } else {
-            req.flash('error_msg', 'Invalid request');
-            return res.redirect('/users/login/');
-        }
-    });
+
+    if (req.appConfig.allowPasswordReset){
+        res.render('forgot-password');
+    } else {
+        req.flash('error_msg', 'Invalid request');
+        return res.redirect('/users/login/');
+    }
+
 });
 
 // Register User
@@ -69,6 +62,7 @@ router.post('/register', function (req, res) {
     var username = req.body.username;
     var password = req.body.password;
     var password2 = req.body.password2;
+    var role = parseInt(req.body.role);
 
     // Validation
     req.checkBody('name', 'Name is required').notEmpty();
@@ -77,58 +71,69 @@ router.post('/register', function (req, res) {
     req.checkBody('username', 'Username is required').notEmpty();
     req.checkBody('password', 'Password is required').notEmpty();
     req.checkBody('password2', 'Passwords do not match').equals(req.body.password);
+    req.checkBody('role', 'Role is required').notEmpty();
 
-    Config.getconfig(function (err, config) {
-        var requireOneNumber = config.passwordComplexity.requireOneNumber;
-        var requireOneSymbol = config.passwordComplexity.requireOneSymbol;
+    if (role === 1) {
+        role = "Préposé aux clients résidentiels";
+    } else if (role === 2) {
+        role = "Préposé aux clients d'affaires";
+    } else {
+        req.flash('error_msg', "Invalid request");
+        return res.redirect('/users/register');
+    }
 
-        var errors = req.validationErrors();
 
-        if(password) {
-            errors = (errors) ? errors : [];
+    var requireOneNumber = req.appConfig.passwordComplexity.requireOneNumber;
+    var requireOneSymbol = req.appConfig.passwordComplexity.requireOneSymbol;
 
-            if(!hasLowerCase(password)) {
-                errors.push({ param : "password", msg : 'Password requires at least one lowercase char' });
-            }
 
-            if(!hasUpperCase(password)) {
-                errors.push({ param : "password", msg : 'Password requires at least one uppercase char' });
-            }
+    var errors = req.validationErrors();
 
-            if(requireOneNumber && !hasDigit(password)) {
-                errors.push({ param : "password", msg : 'Password requires one number minimum' });
-            }
+    if(password) {
+        errors = (errors) ? errors : [];
 
-            if(requireOneSymbol && !hasSpecialChar(password)) {
-                errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
-            }
+        if(!hasLowerCase(password)) {
+            errors.push({ param : "password", msg : 'Password requires at least one lowercase char' });
         }
 
-        if (errors && errors.length > 0) {
-            res.render('register', {
-                errors: errors
-            });
-        } else {
-            var newUser = new User({
-                name: name,
-                email: email,
-                username: username,
-                password: password
-            });
-
-            User.createUser(newUser, function (err, user) {
-                if (err) {
-                    req.flash('error_msg', err.message);
-                    return res.redirect('/users/register');
-                    throw err;
-                    // console.log(user);
-                } else {
-                    req.flash('success_msg', 'You are registered and can now login');
-                    res.redirect('/users/login');
-                }
-            });
+        if(!hasUpperCase(password)) {
+            errors.push({ param : "password", msg : 'Password requires at least one uppercase char' });
         }
-    });
+
+        if(requireOneNumber && !hasDigit(password)) {
+            errors.push({ param : "password", msg : 'Password requires one number minimum' });
+        }
+
+        if(requireOneSymbol && !hasSpecialChar(password)) {
+            errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
+        }
+    }
+
+    if (errors && errors.length > 0) {
+        res.render('register', {
+            errors: errors
+        });
+    } else {
+        var newUser = new User({
+            name: name,
+            email: email,
+            username: username,
+            password: password,
+            role: role
+        });
+
+        User.createUser(newUser, function (err, user) {
+            if (err) {
+                req.flash('error_msg', err.message);
+                return res.redirect('/users/register');
+                throw err;
+                // console.log(user);
+            } else {
+                req.flash('success_msg', 'You are registered and can now login');
+                res.redirect('/users/login');
+            }
+        });
+    }
 });
 
 
@@ -181,7 +186,7 @@ passport.deserializeUser(function (id, done) {
 
 
 bouncer.blocked = function (req, res, next, remaining) {
-    res.send(429, "Too many requests have been made, " +
+    res.status(429).send("Too many requests have been made within a short period of time, " +
         "please wait " + remaining / 1000 + " seconds");
 };
 
@@ -190,29 +195,46 @@ router.post('/login', bouncer.block, function (req, res, next) {
         if (err) {
             return next(err);
         }
+
         if (!user || user.locked) {
-            User.incrementFailedLogins(req.body.username, function(nbFailedLogins){
-                Config.getconfig(function (err, config) {
-                    if (nbFailedLogins >= config.nbFailsPerAttempt * config.maxNbAttempts) {
-                        User.lock(req.body.username, function(){
-                            var errors = [];
-                            errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house.' });
-                            return res.render('login', {
-                                errors: errors
+            User.getUserByUsername(req.body.username, function (err, u) {
+                if (u && u.prelockTimeoutExpires && Date.now() < u.prelockTimeoutExpires) {
+                    req.flash('error_msg', 'Wrong credentials. You will need to wait ' + req.appConfig.attemptTimeout/1000 + " seconds before you can try to login to this account again.");
+                    return res.redirect('/users/login');
+                } else {
+                    User.incrementFailedLogins(req.body.username, function(nbFailedLogins){
+                        if (nbFailedLogins >= req.appConfig.nbFailsPerAttempt * req.appConfig.maxNbAttempts) {
+                            User.lock(req.body.username, function(){
+                                var errors = [];
+                                errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house. The administrator will be able to unlock your account.' });
+                                return res.render('login', {
+                                    errors: errors,
+                                    passwordResettable: req.appConfig.allowPasswordReset,
+                                    troll: true
+                                });
                             });
-                        });
-                    } else {
-                        req.flash('error_msg', 'Wrong credentials ');
-                        Log.addLog(new Log({
-                            username: req.body.username,
-                            ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
-                            action: "Failed login",
-                            date: Date.now()
-                        }));
-                        return res.redirect('/users/login');
-                    }
-                });
+                        } else if (nbFailedLogins && !(nbFailedLogins % req.appConfig.nbFailsPerAttempt)) {
+                            User.setPrelockTimeout(req.body.username, Date.now() + req.appConfig.attemptTimeout, function(){
+                                req.flash('error_msg', 'Wrong credentials. You will need to wait ' + req.appConfig.attemptTimeout/1000 + " seconds before you can try to login to this account again.");
+                                return res.redirect('/users/login');
+                            });
+
+                        } else {
+                            req.flash('error_msg', 'Wrong credentials ');
+                            Log.addLog(new Log({
+                                username: req.body.username,
+                                ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                                action: "Failed login",
+                                date: Date.now()
+                            }));
+                            return res.redirect('/users/login');
+                        }
+
+                    });
+                }
             });
+
+
         } else {
             req.logIn(user, function (err) {
                 if (err) {
@@ -226,7 +248,7 @@ router.post('/login', bouncer.block, function (req, res, next) {
                         client.messages.create({
                             body: 'Your verification code is: ' + token,
                             to: '+1' + user.phoneNumber,  // Text this number
-                            from: '+14387938676 ' // From a valid Twilio number
+                            from: TWILIO_PHONE_NUMBER // From a valid Twilio number
                         }, function(err, message) {
                             req.user = user;
                             return res.redirect('/users/two-factor-auth');
@@ -299,42 +321,44 @@ router.post('/two-factor-auth', function(req, res) {
 })
 
 router.get('/logout', function (req, res) {
+
     req.logout();
 
     req.flash('success_msg', 'You are logged out');
+
+    // req.session.destroy();
 
     res.redirect('/users/login');
 });
 
 
 router.post('/forgot-password', function(req, res, next) {
-    isPasswordResettable(function(passwordResettable){
-        if (passwordResettable) {
-            var email = req.body.email;
-            var mailOptions = {
-                to : email,
-                from : EMAIL_SENDER,
-                subject : 'GTI619 - LoginApp - Password reset',
-                text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
-                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                    'http://' + req.headers.host + '/users/reset-password/{{token}}&' + email + '\n\n' +
-                    'If you did not request this, please ignore this email and your password will remain unchanged.\n'
-            };
-            async.waterfall(getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
-                if (err) return next(err);
-                req.flash('success_msg', 'The instructions to reset your password have been sent to your email address.');
-                res.redirect('/users/login');
-            });
-        } else {
-            req.flash('error_msg', 'Invalid request');
-            return res.redirect('/users/login/');
-        }
-    });
-
+    if (req.appConfig.allowPasswordReset) {
+        var email = req.body.email;
+        var mailOptions = {
+            to : email,
+            from : EMAIL_SENDER,
+            subject : 'GTI619 - LoginApp - Password reset',
+            text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
+                'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                'http://' + req.headers.host + '/users/reset-password/{{token}}&' + email + '\n\n' +
+                'If you did not request this, please ignore this email and your password will remain unchanged.\n'
+        };
+        async.waterfall(getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
+            if (err) return next(err);
+            req.flash('success_msg', 'The instructions to reset your password have been sent to your email address.');
+            res.redirect('/users/login');
+        });
+    } else {
+        req.flash('error_msg', 'Invalid request');
+        return res.redirect('/users/login/');
+    }
 });
 
 
 router.get('/reset-password/:token&:email', function(req, res) {
+    req.logout();
+
     var email = req.params.email;
     var token = req.params.token;
     User.findOne({
@@ -395,11 +419,21 @@ router.post('/reset-password', function(req, res) {
                 return res.redirect('/users/forgot-password/');
             }
 
+            if (u.locked) {
+                req.flash('error_msg', 'This account is locked, only the administrators will be able to unlock the account.');
+                return res.redirect('/users/forgot-password');
+            }
+
             u.resetPasswordToken = undefined;
             u.resetPasswordExpires = undefined;
-            User.changePassword(u, password, function (err, user) {
-                if (err) throw err;
-                else{
+            User.changePassword(u, password, req.appConfig.password_history_length, function (err, user) {
+                if (err){
+                    return res.render('reset-password', {
+                        errors: [{msg: err.message}],
+                        token: token,
+                        email: email
+                    });
+                } else {
                     Log.addLog(new Log({
                         username: user.username,
                         ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
@@ -447,9 +481,11 @@ router.post('/modify-password', ensureAuthenticated, function(req, res) {
             .catch(err => console.log(err));
 
         function modifyPassword(){
-            User.changePassword(req.user, newPassword, function (err, user) {
-                if (err) throw err;
-                else{
+            User.changePassword(req.user, newPassword, req.appConfig.password_history_length, function (err, user) {
+                if (err) {
+                    req.flash('error_msg', err.message);
+                    return res.redirect('/users/modify-password');
+                } else {
                     Log.addLog(new Log({
                         username: user.username,
                         ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
@@ -473,7 +509,7 @@ router.post('/add', ensureIsAdmin, function(req, res) {
     let username = req.body.username;
     let email = req.body.email;
     let name = req.body.name;
-    let role = req.body.role;
+    let role = parseInt(req.body.role);
 
     req.checkBody('currentPassword', 'Current password is required').notEmpty();
     req.checkBody('username', 'New password is required').notEmpty();
@@ -483,6 +519,19 @@ router.post('/add', ensureIsAdmin, function(req, res) {
     req.checkBody('email', 'Email is not valid').isEmail();
 
     var errors = req.validationErrors();
+
+
+    if (role === 1) {
+        role = "Préposé aux clients résidentiels";
+    } else if (role === 2) {
+        role = "Préposé aux clients d'affaires";
+    } else if (role === 3) {
+        role = "admin";
+    } else {
+        req.flash('error_msg', "Invalid request");
+        return res.redirect('/users/add');
+    }
+
 
     if (errors) {
         res.render('modify-password', {
@@ -600,6 +649,46 @@ router.get('/business-officers', ensureAuthenticated, function(req, res){
     }
 });
 
+router.get('/locked-accounts', ensureIsAdmin, function(req, res){
+    if (req.user.role === "admin") {
+        User.getAllBy('locked', true, function(err, users){
+            res.render('list-users', {
+                users: users,
+                role: "Locked users",
+                listItemActionUrl: true
+            });
+        });
+    } else {
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
+    }
+});
+
+
+router.post('/unlock', ensureIsAdmin, function(req, res){
+    var id = req.body.id;
+
+    User.getUserById(id, function(err, user){
+        User.unlock(user, function(err, user){
+            var mailOptions = {
+                to : user.email,
+                from : EMAIL_SENDER,
+                subject : 'GTI619 - LoginApp - Account unlocked and Password reset',
+                text : 'You are receiving this because your account had been locked and now requires a password reset.\n\n' +
+                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                    'http://' + req.headers.host + '/users/reset-password/{{token}}&' + user.email + '\n\n' +
+                    'You have one hour to do so.\n'
+            };
+            async.waterfall(getResetPasswordEmailWaterfall(user.email, mailOptions, req, res), function(err) {
+                if (err) return next(err);
+                req.flash('success_msg', 'The account has been unlocked and the instructions to reset the password has been sent to the user at his email address.');
+                res.redirect('/users/locked-accounts');
+            });
+        })
+    })
+
+});
+
 
 
 function ensureAuthenticated(req, res, next){
@@ -637,6 +726,11 @@ function getResetPasswordEmailWaterfall(destEmail, mailOptions, req, res){
                         req.flash('error', 'No account with that email address exists.');
                         return res.redirect('/users/forgot-password');
                     }
+
+                    if (user.locked) {
+                        req.flash('error', 'This account is locked, only the administrators will be able to unlock the account.');
+                        return res.redirect('/users/forgot-password');
+                    }
                     user.resetPasswordToken = token;
                     user.resetPasswordExpires = Date.now() + ONE_HOUR;
 
@@ -647,8 +741,8 @@ function getResetPasswordEmailWaterfall(destEmail, mailOptions, req, res){
             },
             function(token, user, done) {
                 var smtpTransport = require('nodemailer-smtp-transport');
-                var smtpTransport = nodemailer.createTransport(smtpTransport({
-                    service : "gmail",
+                smtpTransport = nodemailer.createTransport(smtpTransport({
+                    service : EMAIL_PROVIDER,
                     auth : {
                         user : EMAIL_SENDER,
                         pass : EMAIL_SENDER_PW,

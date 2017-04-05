@@ -11,8 +11,10 @@ var LocalStrategy = require('passport-local').Strategy;
 var mongo = require('mongodb');
 var mongoose = require('mongoose');
 require('ssl-root-cas').inject();
+require('dotenv').config();
 
 const SESSION_TIME_MINUTES = 5;
+var Config = require('./models/config');
 
 //CSRF
 // var csrf = require('csurf');
@@ -43,7 +45,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Express Session
 app.use(session({
-    secret: 'dzndCGNXDV5CAKwxK0UVfiap3EYXo5S2lj3uYRWebZC1RHPCdhRr9bKWw4JIBm9nxpeF2cE5zhyqOxcYWGGypfmDddBkL3Vl',
+    secret: process.env.APP_SECRET,
     cookie: {
         // secure: true,
         maxAge: SESSION_TIME_MINUTES * 1000 * 60 // 5 min cookies
@@ -96,6 +98,15 @@ app.use(function (req, res, next) {
 
 //TODO check that
 // app.use(csrf());
+
+
+// Config hook
+app.use(function(req, res, next){
+  Config.getconfig(function (err, config) {
+    req.appConfig = config;
+    next();
+  });
+});
 
 
 require('./routes/routes')(app); // configure our routes

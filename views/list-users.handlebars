@@ -5,10 +5,28 @@
     {{/each}}
 {{/if}}
 
-<ul class="list-group">
-    {{#each users}}
-		<li class="list-group-item">
-			<span class="label label-default">{{name}}</span> {{email}}
-		</li>
-    {{/each}}
-</ul>
+
+
+{{#if listItemActionUrl}}
+	<ul class="list-group">
+	    {{#each users}}
+			<li class="list-group-item">
+				<span class="label label-default">{{name}}</span> {{email}}
+					<form class="right" method="post" action="/users/unlock">
+						<button type="submit" class="btn btn-default btn-sm user-list-action">
+							<span class="glyphicon glyphicon-flag" aria-hidden="true"></span> Unlock and send email
+						</button>
+						<input type="hidden" value="{{id}}" name="id"/>
+					</form>
+			</li>
+	    {{/each}}
+	</ul>
+{{else}}
+	<ul class="list-group">
+	    {{#each users}}
+			<li class="list-group-item">
+				<span class="label label-default">{{name}}</span> {{email}}
+			</li>
+	    {{/each}}
+	</ul>
+{{/if}}

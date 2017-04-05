@@ -20,6 +20,13 @@
 				<input class="form-control" type="number" value="{{config.nbFailsPerAttempt}}" min="1" name="nbFailsPerAttempt" id="nb-fails-per-attempt"/>
 				<small class="form-text text-muted">This value defines the number of failed logins per failed attempt.</small>
 			</div>
+
+			<div class="form-group">
+				<label for="attempt-timeout">Failed attempt timeout (in seconds)</label>
+				<input class="form-control" type="number" value="{{attemptTimeoutSeconds}}" min="0" name="attemptTimeoutSeconds" id="attempt-timeout"/>
+				<small class="form-text text-muted">This value defines the delay that a user has to wait <strong>(in seconds)</strong> before a new login attempt can be made.</small>
+			</div>
+
 		</div>
 	</div>
 
@@ -54,6 +61,18 @@
 			</div>
 		</div>
 	</div>
+
+	<div class="panel panel-default">
+		<div class="panel-heading">Password history</div>
+		<div class="panel-body">
+			<div class="form-group">
+				<label for="password-history-length">Number of previous passwords that cannot be set as a new password</label>
+				<input class="form-control" type="number" value="{{config.password_history_length}}" min="1" name="password_history_length" id="password-history-length"/>
+				<small class="form-text text-muted">This value defines the number of passwords (hashed) that are being stored for each user. For example, if it is set to "2", a user cannot use one of his/her last 2 passwords as a new password.</small>
+			</div>
+		</div>
+	</div>
+
 
 	<input class="btn btn-primary btn-lg" type="submit" value="Apply changes" />
 </form>

@@ -120,3 +120,29 @@ h3.logo a {
 h3.logo a:hover{
   color: black;
 }
+
+.trollolol, .pulp {
+  position: fixed;
+  width: 200px;
+  height: auto;
+  bottom: 0px;
+  right: 350px;
+  pointer-events: none;
+}
+
+.trollolol {
+  filter: blur(1px);
+}
+
+.pulp {
+  right: 420px;
+  width: 300px;
+}
+
+.action-label {
+  float: right;
+}
+
+.right {float: right;}
+.left {float: left;}
+.user-list-action{position: relative; top: -5px;}

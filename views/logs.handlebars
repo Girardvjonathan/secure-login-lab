@@ -9,7 +9,7 @@
     {{#each logs}}
 		<li class="list-group-item">
 			<!-- <span class="label label-default">{{formatTime date "MM-DD-YYYY H:mm:ss"}}</span> -->
-			<span class="badge badge-primary">{{action}}</span>
+			<span class="action-label label label-{{tag}}">{{action}}</span>
 			User: <strong>{{username}}</strong> | <small>{{formatTime date "MM-DD-YYYY H:mm:ss"}}</small>
 		</li>
     {{/each}}
