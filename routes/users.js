@@ -357,6 +357,8 @@ router.post('/forgot-password', function(req, res, next) {
 
 
 router.get('/reset-password/:token&:email', function(req, res) {
+    req.logout();
+
     var email = req.params.email;
     var token = req.params.token;
     User.findOne({
@@ -439,7 +441,7 @@ router.post('/reset-password', function(req, res) {
                         date: Date.now()
                     }));
                     req.flash('success_msg', 'Your password has been changed.');
-                    return res.redirect('/');
+                    return res.redirect('/users/login');
                 }
             });
         });
