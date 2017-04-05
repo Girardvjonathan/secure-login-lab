@@ -171,8 +171,8 @@ module.exports.setPrelockTimeout = function (username, dateTimeoutExpires, callb
     })
 };
 
-module.exports.resetPrelockTimeout = function (user, callback) {
-    user.prelockTimeoutExpires = undefined;
+module.exports.unlock = function (user, callback) {
+    user.locked = false;
     user.save(callback);
 };
 

@@ -29,7 +29,7 @@ smtpTransport = nodemailer.createTransport(smtpTransport({
 }));
 
 var User = require('../models/users');
-var bouncer = require("express-bouncer")(2000, 900000);
+var bouncer = require("express-bouncer")(2000, 900000, 200);
 
 // Register
 router.get('/register', function (req, res) {
@@ -62,6 +62,7 @@ router.post('/register', function (req, res) {
     var username = req.body.username;
     var password = req.body.password;
     var password2 = req.body.password2;
+    var role = parseInt(req.body.role);
 
     // Validation
     req.checkBody('name', 'Name is required').notEmpty();
@@ -70,6 +71,16 @@ router.post('/register', function (req, res) {
     req.checkBody('username', 'Username is required').notEmpty();
     req.checkBody('password', 'Password is required').notEmpty();
     req.checkBody('password2', 'Passwords do not match').equals(req.body.password);
+    req.checkBody('role', 'Role is required').notEmpty();
+
+    if (role === 1) {
+        role = "Préposé aux clients résidentiels";
+    } else if (role === 2) {
+        role = "Préposé aux clients d'affaires";
+    } else {
+        req.flash('error_msg', "Invalid request");
+        return res.redirect('/users/register');
+    }
 
 
     var requireOneNumber = req.appConfig.passwordComplexity.requireOneNumber;
@@ -107,7 +118,8 @@ router.post('/register', function (req, res) {
             name: name,
             email: email,
             username: username,
-            password: password
+            password: password,
+            role: role
         });
 
         User.createUser(newUser, function (err, user) {
@@ -194,7 +206,7 @@ router.post('/login', bouncer.block, function (req, res, next) {
                         if (nbFailedLogins >= req.appConfig.nbFailsPerAttempt * req.appConfig.maxNbAttempts) {
                             User.lock(req.body.username, function(){
                                 var errors = [];
-                                errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house.' });
+                                errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house. The administrator will be able to unlock your account.' });
                                 return res.render('login', {
                                     errors: errors,
                                     passwordResettable: req.appConfig.allowPasswordReset,
@@ -405,6 +417,11 @@ router.post('/reset-password', function(req, res) {
                 return res.redirect('/users/forgot-password/');
             }
 
+            if (u.locked) {
+                req.flash('error_msg', 'This account is locked, only the administrators will be able to unlock the account.');
+                return res.redirect('/users/forgot-password');
+            }
+
             u.resetPasswordToken = undefined;
             u.resetPasswordExpires = undefined;
             User.changePassword(u, password, req.appConfig.password_history_length, function (err, user) {
@@ -422,7 +439,7 @@ router.post('/reset-password', function(req, res) {
                         date: Date.now()
                     }));
                     req.flash('success_msg', 'Your password has been changed.');
-                    return res.redirect('/users/login');
+                    return res.redirect('/');
                 }
             });
         });
@@ -490,7 +507,7 @@ router.post('/add', ensureIsAdmin, function(req, res) {
     let username = req.body.username;
     let email = req.body.email;
     let name = req.body.name;
-    let role = req.body.role;
+    let role = parseInt(req.body.role);
 
     req.checkBody('currentPassword', 'Current password is required').notEmpty();
     req.checkBody('username', 'New password is required').notEmpty();
@@ -500,6 +517,19 @@ router.post('/add', ensureIsAdmin, function(req, res) {
     req.checkBody('email', 'Email is not valid').isEmail();
 
     var errors = req.validationErrors();
+
+
+    if (role === 1) {
+        role = "Préposé aux clients résidentiels";
+    } else if (role === 2) {
+        role = "Préposé aux clients d'affaires";
+    } else if (role === 3) {
+        role = "admin";
+    } else {
+        req.flash('error_msg', "Invalid request");
+        return res.redirect('/users/add');
+    }
+
 
     if (errors) {
         res.render('modify-password', {
@@ -617,6 +647,46 @@ router.get('/business-officers', ensureAuthenticated, function(req, res){
     }
 });
 
+router.get('/locked-accounts', ensureIsAdmin, function(req, res){
+    if (req.user.role === "admin") {
+        User.getAllBy('locked', true, function(err, users){
+            res.render('list-users', {
+                users: users,
+                role: "Locked users",
+                listItemActionUrl: true
+            });
+        });
+    } else {
+        req.flash('error_msg', 'You don\'t have the permissions the access the requested page.');
+        res.redirect('/');
+    }
+});
+
+
+router.post('/unlock', ensureIsAdmin, function(req, res){
+    var id = req.body.id;
+
+    User.getUserById(id, function(err, user){
+        User.unlock(user, function(err, user){
+            var mailOptions = {
+                to : user.email,
+                from : EMAIL_SENDER,
+                subject : 'GTI619 - LoginApp - Account unlocked and Password reset',
+                text : 'You are receiving this because your account had been locked and now requires a password reset.\n\n' +
+                    'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
+                    'http://' + req.headers.host + '/users/reset-password/{{token}}&' + user.email + '\n\n' +
+                    'You have one hour to do so.\n'
+            };
+            async.waterfall(getResetPasswordEmailWaterfall(user.email, mailOptions, req, res), function(err) {
+                if (err) return next(err);
+                req.flash('success_msg', 'The account has been unlocked and the instructions to reset the password has been sent to the user at his email address.');
+                res.redirect('/users/locked-accounts');
+            });
+        })
+    })
+
+});
+
 
 
 function ensureAuthenticated(req, res, next){
@@ -652,6 +722,11 @@ function getResetPasswordEmailWaterfall(destEmail, mailOptions, req, res){
                     if (!user) {
                         console.log("no user found with: " + destEmail);
                         req.flash('error', 'No account with that email address exists.');
+                        return res.redirect('/users/forgot-password');
+                    }
+
+                    if (user.locked) {
+                        req.flash('error', 'This account is locked, only the administrators will be able to unlock the account.');
                         return res.redirect('/users/forgot-password');
                     }
                     user.resetPasswordToken = token;

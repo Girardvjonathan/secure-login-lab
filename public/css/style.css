@@ -142,3 +142,7 @@ h3.logo a:hover{
 .action-label {
   float: right;
 }
+
+.right {float: right;}
+.left {float: left;}
+.user-list-action{position: relative; top: -5px;}
