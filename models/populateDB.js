@@ -5,9 +5,7 @@ module.exports = function () {
     mongoose.connection.collections['hashes'].drop(function (err) {
         mongoose.connection.collections['configs'].drop(function (err) {
             mongoose.connection.collections['users'].drop(function (err) {
-                // mongoose.connection.collections['logs'].drop( function(err) {
                 createData();
-                // });
             });
         });
     });

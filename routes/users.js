@@ -183,31 +183,46 @@ router.post('/login', bouncer.block, function (req, res, next) {
         if (err) {
             return next(err);
         }
+
         if (!user || user.locked) {
-            User.incrementFailedLogins(req.body.username, function(nbFailedLogins){
-
-                if (nbFailedLogins >= req.appConfig.nbFailsPerAttempt * req.appConfig.maxNbAttempts) {
-                    User.lock(req.body.username, function(){
-                        var errors = [];
-                        errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house.' });
-                        return res.render('login', {
-                            errors: errors,
-                            passwordResettable: req.appConfig.allowPasswordReset,
-                            troll: true
-                        });
-                    });
-                } else {
-                    req.flash('error_msg', 'Wrong credentials ');
-                    Log.addLog(new Log({
-                        username: req.body.username,
-                        ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
-                        action: "Failed login",
-                        date: Date.now()
-                    }));
+            User.getUserByUsername(req.body.username, function (err, u) {
+                if (u && u.prelockTimeoutExpires && Date.now() < u.prelockTimeoutExpires) {
+                    req.flash('error_msg', 'Wrong credentials. You will need to wait ' + req.appConfig.attemptTimeout/1000 + " seconds before you can try to login to this account again.");
                     return res.redirect('/users/login');
-                }
+                } else {
+                    User.incrementFailedLogins(req.body.username, function(nbFailedLogins){
+                        if (nbFailedLogins >= req.appConfig.nbFailsPerAttempt * req.appConfig.maxNbAttempts) {
+                            User.lock(req.body.username, function(){
+                                var errors = [];
+                                errors.push({shake: true, param : "Max login attempts", msg : 'This account has been locked due to a high number of unsuccesful logins. The site administrators have been informed of the incident and the FBI may or may not be on their way to your house.' });
+                                return res.render('login', {
+                                    errors: errors,
+                                    passwordResettable: req.appConfig.allowPasswordReset,
+                                    troll: true
+                                });
+                            });
+                        } else if (nbFailedLogins && !(nbFailedLogins % req.appConfig.nbFailsPerAttempt)) {
+                            User.setPrelockTimeout(req.body.username, Date.now() + req.appConfig.attemptTimeout, function(){
+                                req.flash('error_msg', 'Wrong credentials. You will need to wait ' + req.appConfig.attemptTimeout/1000 + " seconds before you can try to login to this account again.");
+                                return res.redirect('/users/login');
+                            });
 
+                        } else {
+                            req.flash('error_msg', 'Wrong credentials ');
+                            Log.addLog(new Log({
+                                username: req.body.username,
+                                ipAddress: req.headers['x-real-ip'] || req.connection.remoteAddress,
+                                action: "Failed login",
+                                date: Date.now()
+                            }));
+                            return res.redirect('/users/login');
+                        }
+
+                    });
+                }
             });
+
+
         } else {
             req.logIn(user, function (err) {
                 if (err) {
@@ -294,9 +309,12 @@ router.post('/two-factor-auth', function(req, res) {
 })
 
 router.get('/logout', function (req, res) {
+
     req.logout();
 
     req.flash('success_msg', 'You are logged out');
+
+    // req.session.destroy();
 
     res.redirect('/users/login');
 });

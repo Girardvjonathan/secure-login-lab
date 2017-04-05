@@ -20,6 +20,13 @@
 				<input class="form-control" type="number" value="{{config.nbFailsPerAttempt}}" min="1" name="nbFailsPerAttempt" id="nb-fails-per-attempt"/>
 				<small class="form-text text-muted">This value defines the number of failed logins per failed attempt.</small>
 			</div>
+
+			<div class="form-group">
+				<label for="attempt-timeout">Failed attempt timeout (in seconds)</label>
+				<input class="form-control" type="number" value="{{attemptTimeoutSeconds}}" min="0" name="attemptTimeoutSeconds" id="attempt-timeout"/>
+				<small class="form-text text-muted">This value defines the delay that a user has to wait <strong>(in seconds)</strong> before a new login attempt can be made.</small>
+			</div>
+
 		</div>
 	</div>
 

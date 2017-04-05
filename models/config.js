@@ -21,6 +21,10 @@ let configSchema = mongoose.Schema({
         type: Number,
         default: 2
     },
+    attemptTimeout: { // in milliseconds
+        type: Number,
+        default: 10000
+    },
     allowPasswordReset: {
         type: Boolean,
         default: true

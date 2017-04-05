@@ -37,6 +37,10 @@ let UserSchema = mongoose.Schema({
     hashId: Number,
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    prelockTimeoutExpires: {
+        type: Date,
+        default: Date.now()
+    },
     password_history: [{
         password: String,
         hashId: Number
@@ -154,6 +158,24 @@ module.exports.resetFailedLogins = function (user, callback) {
     user.nbFailedLogins = 0;
     user.save(callback);
 };
+
+
+module.exports.setPrelockTimeout = function (username, dateTimeoutExpires, callback) {
+    User.getUserByUsername(username, function (err, user) {
+        if (user) {
+            user.prelockTimeoutExpires = dateTimeoutExpires;
+            user.save(callback);
+        } else {
+            callback(0);
+        }
+    })
+};
+
+module.exports.resetPrelockTimeout = function (user, callback) {
+    user.prelockTimeoutExpires = undefined;
+    user.save(callback);
+};
+
 
 let makeSalt = function () {
     return Math.round((new Date().valueOf() * Math.random())) + '';

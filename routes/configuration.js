@@ -32,8 +32,8 @@ router.get('/logs', ensureIsAdmin, function(req, res){
 router.get('/', ensureIsAdmin, function(req, res){
 	Config.getconfig(function (err, config) {
         res.render('configuration', {
-            // dummy config object
-            config: config
+            config: config,
+            attemptTimeoutSeconds: config.attemptTimeout / 1000
         });
     })
 });
@@ -46,6 +46,7 @@ router.post('/apply', ensureIsAdmin, function(req, res){
         var requireOneSymbol = req.body.requireOneSymbol;
         var nbFailsPerAttempt = req.body.nbFailsPerAttempt;
         var password_history_length = req.body.password_history_length;
+        var attemptTimeoutSeconds = req.body.attemptTimeoutSeconds;
 		(allowPasswordReset == 'on')? allowPasswordReset=true: allowPasswordReset=false;
 		(requireOneNumber == 'on')? requireOneNumber=true: requireOneNumber=false;
 		(requireOneSymbol == 'on')? requireOneSymbol=true: requireOneSymbol=false;
@@ -57,6 +58,8 @@ router.post('/apply', ensureIsAdmin, function(req, res){
         req.checkBody('nbFailsPerAttempt', 'nbFailsPerAttempt must be a number').isInt();
         req.checkBody('password_history_length', 'password_history_length is required').notEmpty();
         req.checkBody('password_history_length', 'password_history_length must be a number').isInt();
+        req.checkBody('attemptTimeoutSeconds', 'attempt timeout is required').notEmpty();
+        req.checkBody('attemptTimeoutSeconds', 'attempt timeout must be a number').isInt();
 
         var errors = req.validationErrors();
 
@@ -67,6 +70,7 @@ router.post('/apply', ensureIsAdmin, function(req, res){
         } else {
             config.maxNbAttempts = maxNbAttempts;
             config.nbFailsPerAttempt = nbFailsPerAttempt;
+            config.attemptTimeout = attemptTimeoutSeconds * 1000;
             config.allowPasswordReset = allowPasswordReset;
             config.passwordComplexity.requireOneNumber = requireOneNumber;
             config.passwordComplexity.requireOneSymbol = requireOneSymbol;
