@@ -13,7 +13,6 @@ var mongoose = require('mongoose');
 require('ssl-root-cas').inject();
 require('dotenv').config();
 
-const SESSION_TIME_MINUTES = 5;
 var Config = require('./models/config');
 
 //CSRF
@@ -48,7 +47,7 @@ app.use(session({
     secret: process.env.APP_SECRET,
     cookie: {
         // secure: true,
-        maxAge: SESSION_TIME_MINUTES * 1000 * 60 // 5 min cookies
+        maxAge: parseFloat(process.env.APP_SESSION_TIME_MINUTES) * 1000 * 60 // 5 min cookies
     },
     saveUninitialized: true,
     resave: true
