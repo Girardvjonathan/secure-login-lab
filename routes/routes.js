@@ -38,6 +38,9 @@ module.exports = function(app) {
         var lock = require('./users/lock');
         app.use('/users/lock', lock);
 
+    var logs = require('./logs');
+    app.use('/logs', logs);
+
     var configuration = require('./configuration');
     app.use('/configuration', configuration);
 

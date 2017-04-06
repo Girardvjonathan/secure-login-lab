@@ -32,7 +32,6 @@ let UserSchema = mongoose.Schema({
     twoFactorEnabled: Boolean,
     twoFactorToken: String,
     phoneNumber: String,
-    key: String,
     salt: String,
     hashId: Number,
     resetPasswordToken: String,
