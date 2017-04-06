@@ -14,10 +14,33 @@ module.exports = function(app) {
         return res.send(JSON.stringify("ok"));
     });
 
-    var users = require('./users');
+    var users = require('./users/users');
     app.use('/users', users);
+
+        var login = require('./users/login');
+        app.use('/users/login', login);
+
+        var twoFactorAuth = require('./users/two-factor-auth');
+        app.use('/users/two-factor-auth', twoFactorAuth);
+
+        var resetPassword = require('./users/reset-password');
+        app.use('/users/reset-password', resetPassword);
+
+        var register = require('./users/register');
+        app.use('/users/register', register);
+
+        var add = require('./users/add');
+        app.use('/users/add', add);
+
+        var modifyPassword = require('./users/modify-password');
+        app.use('/users/modify-password', modifyPassword);
+
+        var lock = require('./users/lock');
+        app.use('/users/lock', lock);
 
     var configuration = require('./configuration');
     app.use('/configuration', configuration);
+
+
 
 };
