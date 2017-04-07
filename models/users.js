@@ -53,17 +53,25 @@ module.exports.createUser = function (newUser, callback) {
         if (exists) {
             callback({message: 'This user already exists.'});
         } else {
-            newUser.salt = makeSalt();
-            Hash.getCurrent(function (err, hash) {
-                newUser.password = encryptPassword(newUser.password, hash, newUser.salt);
-                newUser.hashId = hash.id;
-                Config.getconfig(function (err, config) {
-                    // Remplir la liste fifo avec le length de la config
-                    for (let i = 0; i < config.password_history_length; i++) {
-                        newUser.password_history.push({password: newUser.password, hashId: newUser.hashId})
-                    }
-                    newUser.save(callback);
-                });
+            Config.getconfig(function (err, config) {
+                var complexityFilter = verifyComplexity(newUser.password, config);
+
+                if (complexityFilter === true) {
+                    newUser.salt = makeSalt();
+                    Hash.getCurrent(function (err, hash) {
+                        newUser.password = encryptPassword(newUser.password, hash, newUser.salt);
+                        newUser.hashId = hash.id;
+                        
+                            // Remplir la liste fifo avec le length de la config
+                            for (let i = 0; i < config.password_history_length; i++) {
+                                newUser.password_history.push({password: newUser.password, hashId: newUser.hashId})
+                            }
+                            newUser.save(callback);
+                        });
+                    
+                } else {
+                    callback(complexityFilter);
+                }
             });
         }
     })
@@ -86,26 +94,36 @@ module.exports.authenticate = function (plainText, user) {
 module.exports.changePassword = function (user, newPassword, configPasswordHistoryLength, callback) {
     // user.salt = makeSalt();
     Hash.getCurrent(function (err, hash) {
-        let usedPassword = false;
-        user.password = encryptPassword(newPassword, hash, user.salt);
-        user.hashId = hash.id;
 
-        for (let i = 0; i < user.password_history.length; i++) {
-            //TODO logique in case hash is different or we dont handle it
-            if (user.password == user.password_history[i].password) {
-                usedPassword = true;
-                callback(new Error("For security purposes, you cannot reuse a password that you have recently used."));
-                break;
-            }
-        }
+        Config.getconfig(function (err, config) {
 
-        if (!usedPassword){
-            if (user.password_history.length){
-                user.password_history.unshift({password: user.password, hashId: user.hashId});
+            var complexityFilter = verifyComplexity(newPassword, config);
+
+            if (complexityFilter === true) {
+                let usedPassword = false;
+                user.password = encryptPassword(newPassword, hash, user.salt);
+                user.hashId = hash.id;
+
+                for (let i = 0; i < user.password_history.length; i++) {
+                    //TODO logique in case hash is different or we dont handle it
+                    if (user.password == user.password_history[i].password) {
+                        usedPassword = true;
+                        callback(new Error("For security purposes, you cannot reuse a password that you have recently used."));
+                        break;
+                    }
+                }
+
+                if (!usedPassword){
+                    if (user.password_history.length){
+                        user.password_history.unshift({password: user.password, hashId: user.hashId});
+                    }
+                    user.password_history.length = (user.password_history.length > configPasswordHistoryLength) ? configPasswordHistoryLength : user.password_history.length;
+                    user.save(callback);
+                }
+            } else {
+                callback(complexityFilter);
             }
-            user.password_history.length = (user.password_history.length > configPasswordHistoryLength) ? configPasswordHistoryLength : user.password_history.length;
-            user.save(callback);
-        }
+        });
     });
 };
 
@@ -213,3 +231,68 @@ module.exports.getAllBy = function (by, value, callback) {
     query[by] = value;
     User.find(query, callback);
 };
+
+
+function verifyComplexity(password, config) {
+
+
+    var requireOneNumber = config.passwordComplexity.requireOneNumber;
+    var requireOneSymbol = config.passwordComplexity.requireOneSymbol;
+    var requireOneUppercase = config.passwordComplexity.requireOneUppercase;
+    var requireOneLowercase = config.passwordComplexity.requireOneLowercase;
+    var requireSpecificLength = config.passwordComplexity.requireSpecificLength;
+    var requireMaximumConsecutiveRecurringCharacters = config.passwordComplexity.requireMaximumConsecutiveRecurringCharacters;
+
+    function hasLowerCase(str) {
+        return (/[a-z]/.test(str));
+    }
+
+    function hasUpperCase(str) {
+        return (/[A-Z]/.test(str));
+    }
+
+    function hasDigit(str) {
+        return (/[0-9]/.test(str));
+    }
+
+    function hasSpecialChar(str) {
+        return (/[#?!@$%^&*-]/.test(str));
+    }
+
+    function hasIdenticalCharactersFollowing(str){
+        return (/(.)\1{2,}/.test(str));
+    }
+
+    function hasMaximumCharacter(str){
+        return (/^.{10,128}$/.test(str));
+    }
+
+    errors = [];
+    if(requireOneLowercase && !hasLowerCase(password)) {
+        errors.push({ param : "password", msg : 'Password requires at least one lowercase char' });
+    }
+
+    if(requireOneUppercase && !hasUpperCase(password)) {
+        errors.push({ param : "password", msg : 'Password requires at least one uppercase char' });
+    }
+
+    if(requireOneNumber && !hasDigit(password)) {
+        errors.push({ param : "password", msg : 'Password requires one number minimum' });
+    }
+
+    if(requireOneSymbol && !hasSpecialChar(password)) {
+        errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
+    }
+    if(requireSpecificLength && !hasMaximumCharacter(password)) {
+        errors.push({ param : "password", msg : 'Password requires must be between 10 and 128 characters' });
+    }
+    if(requireMaximumConsecutiveRecurringCharacters && hasIdenticalCharactersFollowing(password)) {
+        errors.push({ param : "password", msg : 'Password cannot contain more then 2 consecutives characters'});
+    }
+
+    if (errors.length > 0)
+        return errors;
+    else
+        return true;
+
+}

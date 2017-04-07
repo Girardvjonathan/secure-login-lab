@@ -37,7 +37,11 @@ router.post('/', ensureAuthenticated, function(req, res) {
 
         function modifyPassword(){
             User.changePassword(req.user, newPassword, req.appConfig.password_history_length, function (err, user) {
-                if (err) {
+                if (err && typeof err == "object" && err.length > 0) {
+                    res.render('modify-password', {
+                        errors: err
+                    });
+                } else if (err) {
                     req.flash('error_msg', err.message);
                     return res.redirect('/users/modify-password');
                 } else {

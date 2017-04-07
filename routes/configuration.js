@@ -44,15 +44,21 @@ router.post('/apply', ensureIsAdmin, function(req, res){
         var allowPasswordReset = req.body.allowPasswordReset;
         var requireOneNumber = req.body.requireOneNumber;
         var requireOneSymbol = req.body.requireOneSymbol;
+        var requireOneUppercase = req.body.requireOneUppercase;
+        var requireOneLowercase = req.body.requireOneLowercase;
         var nbFailsPerAttempt = req.body.nbFailsPerAttempt;
         var password_history_length = req.body.password_history_length;
         var attemptTimeoutSeconds = req.body.attemptTimeoutSeconds;
         var requireSpecificLength = req.body.requireSpecificLength;
         var requireMaximumConsecutiveRecurringCharacters = req.body.requireMaximumConsecutiveRecurringCharacters;
+
+
         (allowPasswordReset == 'on')? allowPasswordReset=true: allowPasswordReset=false;
 		(requireOneNumber == 'on')? requireOneNumber=true: requireOneNumber=false;
 		(requireOneSymbol == 'on')? requireOneSymbol=true: requireOneSymbol=false;
         (requireSpecificLength == 'on')? requireSpecificLength=true: requireSpecificLength=false;
+        (requireOneUppercase == 'on')? requireOneUppercase=true: requireOneUppercase=false;
+        (requireOneLowercase == 'on')? requireOneLowercase=true: requireOneLowercase=false;
         (requireMaximumConsecutiveRecurringCharacters == 'on')? requireMaximumConsecutiveRecurringCharacters=true: requireMaximumConsecutiveRecurringCharacters=false;
 
 
@@ -79,6 +85,8 @@ router.post('/apply', ensureIsAdmin, function(req, res){
             config.allowPasswordReset = allowPasswordReset;
             config.passwordComplexity.requireOneNumber = requireOneNumber;
             config.passwordComplexity.requireOneSymbol = requireOneSymbol;
+            config.passwordComplexity.requireOneUppercase = requireOneUppercase;
+            config.passwordComplexity.requireOneLowercase = requireOneLowercase;
             config.passwordComplexity.requireSpecificLength = requireSpecificLength;
             config.passwordComplexity.requireMaximumConsecutiveRecurringCharacters = requireMaximumConsecutiveRecurringCharacters;
             config.password_history_length = password_history_length;

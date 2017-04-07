@@ -45,6 +45,14 @@ let configSchema = mongoose.Schema({
         requireMaximumConsecutiveRecurringCharacters: {
             type: Boolean,
             default: false
+        },
+        requireOneUppercase: {
+            type: Boolean,
+            default: false
+        },
+        requireOneLowercase: {
+            type: Boolean,
+            default: false
         }
     },
     password_history_length: {
