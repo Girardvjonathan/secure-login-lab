@@ -14,6 +14,10 @@ var HashSchema = mongoose.Schema({
         type: String,
         unique:true
     },
+    nbPasses: {
+        type: Number,
+        default: 666
+    },
     current: {
         type: Boolean,
         default: false

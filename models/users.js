@@ -55,7 +55,7 @@ module.exports.createUser = function (newUser, callback) {
         } else {
             newUser.salt = makeSalt();
             Hash.getCurrent(function (err, hash) {
-                newUser.password = encryptPassword(newUser.password, hash.name, newUser.salt);
+                newUser.password = encryptPassword(newUser.password, hash, newUser.salt);
                 newUser.hashId = hash.id;
                 Config.getconfig(function (err, config) {
                     // Remplir la liste fifo avec le length de la config
@@ -74,7 +74,7 @@ module.exports.authenticate = function (plainText, user) {
     return new Promise((resolve, reject) => {
         Hash.getHashById(user.hashId, function (err, hash) {
             if (err) reject(err);
-            let hashed_password = encryptPassword(plainText, hash.name, user.salt);
+            let hashed_password = encryptPassword(plainText, hash, user.salt);
             resolve({
                 isMatch: hashed_password === user.password
                 , user: user
@@ -87,7 +87,7 @@ module.exports.changePassword = function (user, newPassword, configPasswordHisto
     // user.salt = makeSalt();
     Hash.getCurrent(function (err, hash) {
         let usedPassword = false;
-        user.password = encryptPassword(newPassword, hash.name, user.salt);
+        user.password = encryptPassword(newPassword, hash, user.salt);
         user.hashId = hash.id;
 
         for (let i = 0; i < user.password_history.length; i++) {
@@ -184,12 +184,18 @@ let encryptPassword = function (password, hash, salt) {
     // console.log("hello + password = "+ password, hash, salt);
     if (!password) return '';
     try {
-        return crypto
-            .createHmac(hash, salt)
-            .update(password)
-            .digest('hex');
+        let hashPasses = [];
+        let stringToHash;
+        let saltToUse = password + salt;
+
+        for (var i = 0; i < hash.nbPasses; i++) {
+            stringToHash = (i === 0) ? password : hashPasses[0];
+            hashPasses.unshift(crypto.createHmac(hash.name, saltToUse).update(stringToHash).digest('hex'));
+        }
+        return hashPasses[0];
+        
     } catch (err) {
-        return '';
+        return err;
     }
 };
 
