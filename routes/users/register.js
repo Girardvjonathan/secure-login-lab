@@ -40,6 +40,9 @@ router.post('/', function (req, res) {
 
     var requireOneNumber = req.appConfig.passwordComplexity.requireOneNumber;
     var requireOneSymbol = req.appConfig.passwordComplexity.requireOneSymbol;
+    var requireSpecificLength = req.appConfig.passwordComplexity.requireSpecificLength;
+    var requireMaximumConsecutiveRecurringCharacters = req.appConfig.passwordComplexity.requireMaximumConsecutiveRecurringCharacters;
+
 
 
     var errors = req.validationErrors();
@@ -61,6 +64,12 @@ router.post('/', function (req, res) {
 
         if(requireOneSymbol && !hasSpecialChar(password)) {
             errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
+        }
+        if(!hasMaximumCharacter(password)) {
+            errors.push({ param : "password", msg : 'Password requires must be between 10 and 128 characters' });
+        }
+        if(hasIdenticalCharactersFollowing(password)) {
+            errors.push({ param : "password", msg : 'Password cannot contain more then 2 consecutives characters'});
         }
     }
 
@@ -106,6 +115,16 @@ function hasDigit(str) {
 
 function hasSpecialChar(str) {
     return (/[#?!@$%^&*-]/.test(str));
+}
+
+function hasIdenticalCharactersFollowing(str){
+    //return (/^.\2?(?!\2)+$/.test(str));
+    //return (/^?=.{8,20}$)(([a-z0-9])\2?(?!\2)+$/.test(str));
+    return (/(.)\1{2,}/.test(str));
+}
+
+function hasMaximumCharacter(str){
+    return (/^.{10,128}$/.test(str));
 }
 
 module.exports = router;

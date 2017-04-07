@@ -47,9 +47,14 @@ router.post('/apply', ensureIsAdmin, function(req, res){
         var nbFailsPerAttempt = req.body.nbFailsPerAttempt;
         var password_history_length = req.body.password_history_length;
         var attemptTimeoutSeconds = req.body.attemptTimeoutSeconds;
-		(allowPasswordReset == 'on')? allowPasswordReset=true: allowPasswordReset=false;
+        var requireSpecificLength = req.body.requireSpecificLength;
+        var requireMaximumConsecutiveRecurringCharacters = req.body.requireMaximumConsecutiveRecurringCharacters;
+        (allowPasswordReset == 'on')? allowPasswordReset=true: allowPasswordReset=false;
 		(requireOneNumber == 'on')? requireOneNumber=true: requireOneNumber=false;
 		(requireOneSymbol == 'on')? requireOneSymbol=true: requireOneSymbol=false;
+        (requireSpecificLength == 'on')? requireSpecificLength=true: requireSpecificLength=false;
+        (requireMaximumConsecutiveRecurringCharacters == 'on')? requireMaximumConsecutiveRecurringCharacters=true: requireMaximumConsecutiveRecurringCharacters=false;
+
 
         // Validation
         req.checkBody('maxNbAttempts', 'maxNbAttempts is required').notEmpty();
@@ -74,6 +79,8 @@ router.post('/apply', ensureIsAdmin, function(req, res){
             config.allowPasswordReset = allowPasswordReset;
             config.passwordComplexity.requireOneNumber = requireOneNumber;
             config.passwordComplexity.requireOneSymbol = requireOneSymbol;
+            config.passwordComplexity.requireSpecificLength = requireSpecificLength;
+            config.passwordComplexity.requireMaximumConsecutiveRecurringCharacters = requireMaximumConsecutiveRecurringCharacters;
             config.password_history_length = password_history_length;
             Config.changeConfig(config);
         }
