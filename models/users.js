@@ -241,6 +241,8 @@ function verifyComplexity(password, config) {
     var requireOneUppercase = config.passwordComplexity.requireOneUppercase;
     var requireOneLowercase = config.passwordComplexity.requireOneLowercase;
     var requireSpecificLength = config.passwordComplexity.requireSpecificLength;
+    var requireSpecificLengthMin = config.passwordComplexity.requireSpecificLengthMin;
+    var requireSpecificLengthMax = config.passwordComplexity.requireSpecificLengthMax;
     var requireMaximumConsecutiveRecurringCharacters = config.passwordComplexity.requireMaximumConsecutiveRecurringCharacters;
 
     function hasLowerCase(str) {
@@ -263,8 +265,8 @@ function verifyComplexity(password, config) {
         return (/(.)\1{2,}/.test(str));
     }
 
-    function hasMaximumCharacter(str){
-        return (/^.{10,128}$/.test(str));
+    function hasMaximumCharacter(str, min, max){
+        return (str.length >= min  && str.length <= max);
     }
 
     errors = [];
@@ -283,8 +285,8 @@ function verifyComplexity(password, config) {
     if(requireOneSymbol && !hasSpecialChar(password)) {
         errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
     }
-    if(requireSpecificLength && !hasMaximumCharacter(password)) {
-        errors.push({ param : "password", msg : 'Password requires must be between 10 and 128 characters' });
+    if(requireSpecificLength && !hasMaximumCharacter(password, requireSpecificLengthMin, requireSpecificLengthMax)) {
+        errors.push({ param : "password", msg : 'Password requires must be between' + requireSpecificLengthMin + ' and ' + requireSpecificLengthMax + ' characters' });
     }
     if(requireMaximumConsecutiveRecurringCharacters && hasIdenticalCharactersFollowing(password)) {
         errors.push({ param : "password", msg : 'Password cannot contain more then 2 consecutives characters'});

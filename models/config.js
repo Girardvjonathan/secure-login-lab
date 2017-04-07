@@ -40,11 +40,19 @@ let configSchema = mongoose.Schema({
         },
         requireSpecificLength: {
             type: Boolean,
-            default: false
+            default: false,
+        },
+        requireSpecificLengthMin: {
+            type: Number,
+            default: 8
+        },
+        requireSpecificLengthMax: {
+            type: Number,
+            default: 20
         },
         requireMaximumConsecutiveRecurringCharacters: {
             type: Boolean,
-            default: false
+            default: false,
         },
         requireOneUppercase: {
             type: Boolean,

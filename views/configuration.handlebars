@@ -64,17 +64,17 @@
 				</div>
 				<div class="checkbox">
 					<label>
-						<input type="checkbox" name="requireSpecificLength" {{#if config.passwordComplexity.requireSpecificLength}}checked{{/if}}> Require at least a minimum of 10 characters and a maximum of 128
-					</label>	
-				</div>
-				<div class="checkbox">
-					<label>
 						<input type="checkbox" name="requireOneUppercase" {{#if config.passwordComplexity.requireOneUppercase}}checked{{/if}}> Require at least one uppercase letter
 					</label>	
 				</div>
 				<div class="checkbox">
 					<label>
 						<input type="checkbox" name="requireOneLowercase" {{#if config.passwordComplexity.requireOneLowercase}}checked{{/if}}> Require at least one lowercase letter
+					</label>	
+				</div>
+				<div class="checkbox">
+					<label class="min-max">
+						<input type="checkbox" name="requireSpecificLength" {{#if config.passwordComplexity.requireSpecificLength}}checked{{/if}}> Require at least a minimum of <input type="number" name="requireSpecificLengthMin" min="1" value="{{config.passwordComplexity.requireSpecificLengthMin}}"/> characters and a maximum of <input max="64" type="number" name="requireSpecificLengthMax" value="{{config.passwordComplexity.requireSpecificLengthMax}}"/> characters
 					</label>	
 				</div>
 			</div>
