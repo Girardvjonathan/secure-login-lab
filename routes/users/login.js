@@ -105,6 +105,10 @@ router.post('/', bouncer.block, function (req, res, next) {
 
         } else {
             req.logIn(user, function (err) {
+                if (user.prelockTimeoutExpires && Date.now() < user.prelockTimeoutExpires) {
+                    req.flash('error_msg', 'Wrong credentials. You will need to wait ' + req.appConfig.attemptTimeout/1000 + " seconds before you can try to login to this account again.");
+                    return res.redirect('/users/login');
+                }
                 if (err) {
                     return next(err);
                 }
