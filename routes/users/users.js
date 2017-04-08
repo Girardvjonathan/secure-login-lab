@@ -8,12 +8,12 @@ router.get('/logout', function (req, res) {
     res.redirect('/users/login');
 });
 
-router.get('/home-officers', ensureAuthenticated, function(req, res){
+router.get('/residential-clients', ensureAuthenticated, function(req, res){
     if (req.user.role === "admin" || req.user.role == "Préposé aux clients résidentiels") {
-        User.getAllBy('role', 'Préposé aux clients résidentiels', function(err, users){
+        User.getAllBy('role', 'Client résidentiel', function(err, users){
             res.render('list-users', {
                 users: users,
-                role: "Préposé aux clients résidentiels"
+                role: "Client résidentiels"
             });
         });
     } else {
@@ -22,12 +22,12 @@ router.get('/home-officers', ensureAuthenticated, function(req, res){
     }
 });
 
-router.get('/business-officers', ensureAuthenticated, function(req, res){
+router.get('/business-clients', ensureAuthenticated, function(req, res){
     if (req.user.role === "admin" || req.user.role == "Préposé aux clients d'affaires") {
-        User.getAllBy('role', 'Préposé aux clients d\'affaires', function(err, users){
+        User.getAllBy('role', "Client d'affaires", function(err, users){
             res.render('list-users', {
                 users: users,
-                role: "Préposé aux clients d'affaires"
+                role: "Client d'affaires"
             });
         });
     } else {

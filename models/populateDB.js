@@ -95,6 +95,40 @@ module.exports = function () {
                     role: 'Préposé aux clients d\'affaires'
                 });
 
+                let user7 = new User({
+                    name: 'business1',
+                    username: 'business1',
+                    password: 'business1',
+                    email: 'business1@mailinator.com',
+                    role: "Client d'affaires"
+                });
+
+
+                let user8 = new User({
+                    name: 'business2',
+                    username: 'business2',
+                    password: 'business2',
+                    email: 'business2@mailinator.com',
+                    role: "Client d'affaires"
+                });
+
+
+                let user9 = new User({
+                    name: 'residential1',
+                    username: 'residential1',
+                    password: 'residential1',
+                    email: 'residential1@mailinator.com',
+                    role: "Client résidentiel"
+                });
+
+
+                let user10 = new User({
+                    name: 'residential2',
+                    username: 'residential2',
+                    password: 'residential2',
+                    email: 'residential2@mailinator.com',
+                    role: "Client résidentiel"
+                });
 
                 User.createUser(user1, function (err, user) {
                     //console.log(err)
@@ -118,6 +152,18 @@ module.exports = function () {
                     //console.log(user)
                 });
                 User.createUser(user6, function (err, user) {
+                    //console.log(user)
+                });
+                User.createUser(user7, function (err, user) {
+                    //console.log(user)
+                });
+                User.createUser(user8, function (err, user) {
+                    //console.log(user)
+                });
+                User.createUser(user9, function (err, user) {
+                    //console.log(user)
+                });
+                User.createUser(user10, function (err, user) {
                     //console.log(user)
                 });
             });
