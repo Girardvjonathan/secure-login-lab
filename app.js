@@ -46,7 +46,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
     secret: process.env.APP_SECRET,
     cookie: {
-        // secure: true,
+        secure: true,
         maxAge: parseFloat(process.env.APP_SESSION_TIME_MINUTES) * 1000 * 60 // 5 min cookies
     },
     saveUninitialized: true,
@@ -122,12 +122,12 @@ var options = {
 };
 
 db.connectDB(function() {
-    app.listen(app.get('port'), function(){
-        console.log('Server started on port '+app.get('port'));
-    });
-    // https.createServer(options, app).listen(app.get('port'), function () {
-    //     console.log('Started!');
+    // app.listen(app.get('port'), function(){
+    //     console.log('Server started on port '+app.get('port'));
     // });
+    https.createServer(options, app).listen(app.get('port'), function () {
+        console.log('Started!');
+    });
 });
 
 exports = module.exports = app;

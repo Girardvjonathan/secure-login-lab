@@ -128,7 +128,11 @@ router.post('/', function(req, res) {
             u.resetPasswordToken = undefined;
             u.resetPasswordExpires = undefined;
             User.changePassword(u, password, req.appConfig.password_history_length, function (err, user) {
-                if (err){
+                if (err && typeof err == "object" && err.length > 0) {
+                    res.render('reset-password', {
+                        errors: err
+                    });
+                } else if (err) {
                     return res.render('reset-password', {
                         errors: [{msg: err.message}],
                         token: token,

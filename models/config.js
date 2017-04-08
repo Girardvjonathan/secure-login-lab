@@ -37,6 +37,30 @@ let configSchema = mongoose.Schema({
         requireOneSymbol: {
             type: Boolean,
             default: false
+        },
+        requireSpecificLength: {
+            type: Boolean,
+            default: false,
+        },
+        requireSpecificLengthMin: {
+            type: Number,
+            default: 8
+        },
+        requireSpecificLengthMax: {
+            type: Number,
+            default: 20
+        },
+        requireMaximumConsecutiveRecurringCharacters: {
+            type: Boolean,
+            default: false,
+        },
+        requireOneUppercase: {
+            type: Boolean,
+            default: false
+        },
+        requireOneLowercase: {
+            type: Boolean,
+            default: false
         }
     },
     password_history_length: {

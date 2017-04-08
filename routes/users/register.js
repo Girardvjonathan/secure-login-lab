@@ -38,31 +38,8 @@ router.post('/', function (req, res) {
     }
 
 
-    var requireOneNumber = req.appConfig.passwordComplexity.requireOneNumber;
-    var requireOneSymbol = req.appConfig.passwordComplexity.requireOneSymbol;
-
-
     var errors = req.validationErrors();
 
-    if(password) {
-        errors = (errors) ? errors : [];
-
-        if(!hasLowerCase(password)) {
-            errors.push({ param : "password", msg : 'Password requires at least one lowercase char' });
-        }
-
-        if(!hasUpperCase(password)) {
-            errors.push({ param : "password", msg : 'Password requires at least one uppercase char' });
-        }
-
-        if(requireOneNumber && !hasDigit(password)) {
-            errors.push({ param : "password", msg : 'Password requires one number minimum' });
-        }
-
-        if(requireOneSymbol && !hasSpecialChar(password)) {
-            errors.push({ param : "password", msg : 'Password requires one symbol minimum' });
-        }
-    }
 
     if (errors && errors.length > 0) {
         res.render('register', {
@@ -78,7 +55,11 @@ router.post('/', function (req, res) {
         });
 
         User.createUser(newUser, function (err, user) {
-            if (err) {
+            if (err && typeof err == "object" && err.length > 0) {
+                res.render('register', {
+                    errors: err
+                });
+            } else if (err) {
                 req.flash('error_msg', err.message);
                 return res.redirect('/users/register');
                 throw err;
@@ -90,22 +71,5 @@ router.post('/', function (req, res) {
         });
     }
 });
-
-
-function hasLowerCase(str) {
-    return (/[a-z]/.test(str));
-}
-
-function hasUpperCase(str) {
-    return (/[A-Z]/.test(str));
-}
-
-function hasDigit(str) {
-    return (/[0-9]/.test(str));
-}
-
-function hasSpecialChar(str) {
-    return (/[#?!@$%^&*-]/.test(str));
-}
 
 module.exports = router;

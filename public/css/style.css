@@ -146,3 +146,4 @@ h3.logo a:hover{
 .right {float: right;}
 .left {float: left;}
 .user-list-action{position: relative; top: -5px;}
+.min-max input[type="number"] {width: 50px; text-align: center;}
