@@ -7,6 +7,8 @@ Avoir nodejs d'installé et avoir une connexion internet active. **Le serveur ne
 
 ## Procédure d'installation
 1. Cloner le projet.
+2. Télécharger les certificats SSL du serveur à cet endroit : https://drive.google.com/open?id=0B_Qy_iFC7cj3SkNVRHpSM09oYzA.
+3. Dézipper l'archive de certificats SSL à la racine du répertoire du projet.
 2. Lancer la commande `npm install` afin d'installer les packages node nécessaires.
 3. À la racine du dossier, lancer la commande `npm start`.
 4. Dans un navigateur, aller à l'adresse suivante : https://localhost:3000.

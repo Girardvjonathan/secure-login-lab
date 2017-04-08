@@ -32,6 +32,10 @@ router.post('/', ensureIsAdmin, function(req, res) {
     } else if (role === 2) {
         role = "Préposé aux clients d'affaires";
     } else if (role === 3) {
+        role = "Client résidentiel";
+    } else if (role === 4) {
+        role = "Client d'affaires";
+    } else if (role === 5) {
         role = "admin";
     } else {
         req.flash('error_msg', "Invalid request");

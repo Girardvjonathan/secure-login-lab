@@ -7,6 +7,7 @@ router.get('/', ensureAuthenticated, function(req, res){
 	res.render('index', {
 		user: req.user,
 		isAdmin: (req.user.role === "admin"),
+        isNotClient: (req.user.role === "admin" || req.user.role === "Préposé aux clients résidentiels" || req.user.role === "Préposé aux clients d'affaires"),
         homeOfficersAccess: (req.user.role === "admin" || req.user.role === "Préposé aux clients résidentiels"),
         businessOfficersAccess: (req.user.role === "admin" || req.user.role === "Préposé aux clients d'affaires")
 	});

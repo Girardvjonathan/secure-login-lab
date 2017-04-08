@@ -32,6 +32,10 @@ router.post('/', function (req, res) {
         role = "Préposé aux clients résidentiels";
     } else if (role === 2) {
         role = "Préposé aux clients d'affaires";
+    } else if (role === 3) {
+        role = "Client résidentiel";
+    } else if (role === 4) {
+        role = "Client d'affaires";
     } else {
         req.flash('error_msg', "Invalid request");
         return res.redirect('/users/register');
