@@ -42,7 +42,7 @@ router.post('/forgot-password', function(req, res, next) {
             subject : 'GTI619 - LoginApp - Password reset',
             text : 'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
                 'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                'http://' + req.headers.host + '/users/reset-password/{{token}}&' + email + '\n\n' +
+                'https://' + req.headers.host + '/users/reset-password/{{token}}&' + email + '\n\n' +
                 'If you did not request this, please ignore this email and your password will remain unchanged.\n'
         };
         async.waterfall(ResetPasswordHelper.getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {

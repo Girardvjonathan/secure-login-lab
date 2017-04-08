@@ -67,7 +67,7 @@ router.post('/', ensureIsAdmin, function(req, res) {
                                     subject : 'GTI619 - LoginApp - Password reset',
                                     text : 'An account has been created for you on loginApp.\n\n' +
                                         'Please click on the following link, or paste this into your browser to complete the process:\n\n' +
-                                        'http://' + req.headers.host + '/users/reset-password/{{token}}&' + user.email + '\n\n' +
+                                        'https://' + req.headers.host + '/users/reset-password/{{token}}&' + user.email + '\n\n' +
                                         'You have one hour to complete to registration.\n'
                                 };
                                 async.waterfall(ResetPasswordHelper.getResetPasswordEmailWaterfall(email, mailOptions, req, res), function(err) {
